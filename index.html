@@ -3,51 +3,90 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
- <title>EverGreen Farm Activity & Expense Tracker</title>
+  <title>EverGreen Farm Activity & Expense Tracker</title>
   <link rel="stylesheet" href="styles.css"/>
 </head>
 <body>
-  <header>
-    <h1>EverGreen Farm Activity & Expense Tracker</h1>
-    <nav>
-      <button class="tab-btn" data-tab="dashboard" data-i18n="dashboard">Dashboard</button>
-      <button class="tab-btn" data-tab="add" data-i18n="add_entry">Add Entry</button>
-      <button class="tab-btn" data-tab="records" data-i18n="records">Records</button>
-      <button class="tab-btn" data-tab="settings" data-i18n="settings">Settings</button>
-      <span class="spacer"></span>
-      <button id="exportCsvBtn" title="CSV" data-i18n="export_csv">Export CSV</button>
-      <button id="exportJsonBtn" title="Backup" data-i18n="backup_json">Backup (JSON)</button>
-      <label class="import-label" data-i18n="restore">
+  <!-- APP HEADER -->
+  <header class="app-header glass">
+    <div class="brand">
+      <div class="logo-dot"></div>
+      <h1>EverGreen Farm Activity & Expense Tracker</h1>
+    </div>
+    <nav class="tabs">
+      <button class="tab-btn active" data-tab="dashboard">Dashboard</button>
+      <button class="tab-btn" data-tab="add">Add Entry</button>
+      <button class="tab-btn" data-tab="records">Records</button>
+      <button class="tab-btn" data-tab="settings">Settings</button>
+    </nav>
+    <div class="header-actions">
+      <button id="exportCsvBtn" class="btn small">Export CSV</button>
+      <button id="exportJsonBtn" class="btn small secondary">Backup (JSON)</button>
+      <label class="btn small outline import-label">
         Restore <input type="file" id="importJsonInput" accept="application/json" hidden>
       </label>
-      <select id="langSelect" title="Language">
+
+      <select id="langSelect" title="Language" class="lang">
         <option value="en">English</option>
         <option value="kn">ಕನ್ನಡ</option>
         <option value="ta">தமிழ்</option>
       </select>
-    </nav>
+    </div>
   </header>
+
   <main>
+    <!-- DASHBOARD -->
     <section id="dashboard" class="tab active">
-      <h2 data-i18n="dashboard_month">Dashboard (This Month)</h2>
+      <h2 class="section-title">Dashboard <span class="muted">(This Month)</span></h2>
       <div class="stats-grid">
-        <div class="card"><h3 data-i18n="total_cost">Total Cost</h3><p id="totalCost">₹0</p></div>
-        <div class="card"><h3 data-i18n="by_category">By Category</h3><ul id="byCategory"></ul></div>
-        <div class="card"><h3 data-i18n="entries">Entries</h3><p id="entryCount">0</p></div>
+        <div class="card stat gradient-green">
+          <h3>Total Cost</h3>
+          <p id="totalCost" class="stat-value">₹0</p>
+          <span class="chip">Sum of all entries this month</span>
+        </div>
+
+        <div class="card stat gradient-cyan">
+          <h3>By Category</h3>
+          <ul id="byCategory" class="list"></ul>
+          <span class="chip">Top spend categories</span>
+        </div>
+
+        <div class="card stat gradient-purple">
+          <h3>Entries</h3>
+          <p id="entryCount" class="stat-value">0</p>
+          <span class="chip">Count this month</span>
+        </div>
       </div>
-      <p class="hint" data-i18n="backup_hint">Tip: Use “Backup (JSON)” weekly to save to your cloud drive.</p>
+
+      <div class="tip">
+        <span class="tip-icon">💾</span>
+        <span>Use <strong>“Backup (JSON)”</strong> weekly to save to your cloud drive.</span>
+      </div>
     </section>
 
+    <!-- ADD ENTRY -->
     <section id="add" class="tab">
-      <h2 id="formTitle" data-i18n="add_entry">Add Entry</h2>
-      <details class="templates"><summary data-i18n="quick_templates">Quick Templates</summary>
-        <div class="template-row"><select id="templateSelect"></select><button id="applyTemplateBtn" class="secondary" data-i18n="apply">Apply</button></div>
+      <h2 class="section-title">Add Entry</h2>
+
+      <details class="templates">
+        <summary>Quick Templates</summary>
+        <div class="template-row">
+          <select id="templateSelect"></select>
+          <button id="applyTemplateBtn" class="btn outline">Apply</button>
+        </div>
       </details>
-      <form id="entryForm">
+
+      <form id="entryForm" class="card form">
         <input type="hidden" id="entryId"/>
+
         <div class="grid">
-          <div><label for="date" data-i18n="date">Date</label><input type="date" id="date" required /></div>
-          <div><label for="category" data-i18n="category">Category</label>
+          <div class="field">
+            <label for="date">Date</label>
+            <input type="date" id="date" required />
+          </div>
+
+          <div class="field">
+            <label for="category">Category</label>
             <select id="category" required>
               <option value="">—</option>
               <option>Labour</option>
@@ -59,28 +98,79 @@
               <option>Other</option>
             </select>
           </div>
-          <div><label for="plot" data-i18n="plot">Plot/Block</label><input type="text" id="plot" list="plotsList" placeholder="Block A" /><datalist id="plotsList"></datalist></div>
-          <div><label for="activity" data-i18n="activity">Activity</label><input type="text" id="activity" placeholder="Weeding" /></div>
-          <div><label for="material" data-i18n="material">Material (if any)</label><input type="text" id="material" placeholder="Urea / Mancozeb" /></div>
-          <div><label for="quantity" data-i18n="quantity">Quantity</label><input type="number" id="quantity" step="0.01" min="0" /></div>
-          <div><label for="unit" data-i18n="unit">Unit</label><input type="text" id="unit" placeholder="kg, L, hrs" /></div>
-          <div><label for="laborers" data-i18n="labourers">Labourers</label><input type="number" id="laborers" step="1" min="0" /></div>
-          <div><label for="hours" data-i18n="hours">Hours</label><input type="number" id="hours" step="0.5" min="0" /></div>
-          <div><label for="cost" data-i18n="cost">Cost (₹)</label><input type="number" id="cost" step="0.01" min="0" /><small id="autoCostHint" class="muted"></small></div>
+
+          <div class="field">
+            <label for="plot">Plot/Block</label>
+            <input type="text" id="plot" list="plotsList" placeholder="Block A" />
+            <datalist id="plotsList"></datalist>
+          </div>
+
+          <div class="field">
+            <label for="activity">Activity</label>
+            <input type="text" id="activity" placeholder="Weeding" />
+          </div>
+
+          <div class="field">
+            <label for="material">Material (if any)</label>
+            <input type="text" id="material" placeholder="Urea / Mancozeb" />
+          </div>
+
+          <div class="field">
+            <label for="quantity">Quantity</label>
+            <input type="number" id="quantity" step="0.01" min="0" />
+          </div>
+
+          <div class="field">
+            <label for="unit">Unit</label>
+            <input type="text" id="unit" placeholder="kg, L, hrs" />
+          </div>
+
+          <div class="field">
+            <label for="laborers">Labourers</label>
+            <input type="number" id="laborers" step="1" min="0" />
+          </div>
+
+          <div class="field">
+            <label for="hours">Hours</label>
+            <input type="number" id="hours" step="0.5" min="0" />
+          </div>
+
+          <div class="field">
+            <label for="cost">Cost (₹)</label>
+            <input type="number" id="cost" step="0.01" min="0" />
+            <small id="autoCostHint" class="muted"></small>
+          </div>
         </div>
-        <div><label for="notes" data-i18n="notes">Notes</label><textarea id="notes" rows="3" placeholder="Vendor, bill no., weather, etc."></textarea></div>
-        <div class="actions"><button type="submit" id="saveBtn" data-i18n="save">Save</button><button type="button" id="resetBtn" class="secondary" data-i18n="reset">Reset</button></div>
+
+        <div class="field full">
+          <label for="notes">Notes</label>
+          <textarea id="notes" rows="3" placeholder="Vendor, bill no., weather, etc."></textarea>
+        </div>
+
+        <div class="actions">
+          <button type="submit" id="saveBtn" class="btn">Save</button>
+          <button type="button" id="resetBtn" class="btn secondary">Reset</button>
+        </div>
       </form>
     </section>
 
+    <!-- RECORDS -->
     <section id="records" class="tab">
-      <h2 data-i18n="records">Records</h2>
-      <div class="filters">
-        <div><label data-i18n="from">From</label><input type="date" id="filterFrom"/></div>
-        <div><label data-i18n="to">To</label><input type="date" id="filterTo"/></div>
-        <div><label data-i18n="category">Category</label>
+      <h2 class="section-title">Records</h2>
+
+      <div class="card filters">
+        <div class="field">
+          <label>From</label>
+          <input type="date" id="filterFrom"/>
+        </div>
+        <div class="field">
+          <label>To</label>
+          <input type="date" id="filterTo"/>
+        </div>
+        <div class="field">
+          <label>Category</label>
           <select id="filterCategory">
-            <option value="" data-i18n="all">All</option>
+            <option value="">All</option>
             <option>Labour</option>
             <option>Fertilizer</option>
             <option>Pesticide</option>
@@ -90,15 +180,69 @@
             <option>Other</option>
           </select>
         </div>
-        <div><label data-i18n="search">Search</label><input type="text" id="filterSearch" placeholder="plot, material, notes"/></div>
+        <div class="field full">
+          <label>Search</label>
+          <input type="text" id="filterSearch" placeholder="plot, material, notes"/>
+        </div>
       </div>
-      <table id="recordsTable"><thead><tr>
-        <th data-i18n="date">Date</th><th data-i18n="category">Category</th><th data-i18n="plot">Plot</th><th data-i18n="activity_material">Activity / Material</th><th data-i18n="qty_short">Qty</th><th data-i18n="unit">Unit</th><th data-i18n="lab_short">Lab</th><th data-i18n="hrs_short">Hrs</th><th data-i18n="cost">Cost (₹)</th><th data-i18n="notes">Notes</th><th></th>
-      </tr></thead><tbody></tbody><tfoot><tr>
-        <td colspan="8" style="text-align:right;font-weight:600;" data-i18n="total">Total</td>
-        <td id="tableTotal">₹0</td><td colspan="2"></td></tr></tfoot></table>
+
+      <div class="table-wrap card">
+        <table id="recordsTable">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Category</th>
+              <th>Plot</th>
+              <th>Activity / Material</th>
+              <th>Qty</th>
+              <th>Unit</th>
+              <th>Lab</th>
+              <th>Hrs</th>
+              <th>Cost (₹)</th>
+              <th>Notes</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+          <tfoot>
+            <tr>
+              <td colspan="8" class="right strong">Total</td>
+              <td id="tableTotal">₹0</td>
+              <td colspan="2"></td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </section>
+
+    <!-- SETTINGS -->
+    <section id="settings" class="tab">
+      <h2 class="section-title">Settings</h2>
+      <div class="card grid settings-grid">
+        <div class="field">
+          <label>Plots/Blocks (comma separated)</label>
+          <textarea id="settingsPlots" rows="3" placeholder="Block A, Block B, Block C"></textarea>
+        </div>
+        <div class="field">
+          <label>Wage Rate per Hour (₹)</label>
+          <input type="number" id="settingsWage" step="1" min="0" placeholder="50"/>
+          <small class="muted">Used to auto-calc Labour cost: labourers × hours × rate</small>
+        </div>
+        <div class="field">
+          <label>Currency Symbol</label>
+          <input type="text" id="settingsCurrency" maxlength="3" placeholder="₹"/>
+        </div>
+      </div>
+      <div class="actions">
+        <button id="saveSettingsBtn" class="btn">Save</button>
+      </div>
     </section>
   </main>
-  <footer><small data-i18n="footer_note">Made for your farm • Offline-first • Local-only data</small></footer>
+
+  <footer>
+    <small>Made for your farm • Local-only data</small>
+  </footer>
+
   <script src="app.js"></script>
-</body></html>
+</body>
+</html>
