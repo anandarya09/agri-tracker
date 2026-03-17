@@ -153,3 +153,44 @@ footer{ text-align:center; color:#9eb2da; padding:28px 0; font-size:.92rem; }
 
 .row-actions{ white-space:nowrap; display:flex; gap:6px; }
 button.danger{ background:linear-gradient(135deg,#ff9aa7,#ff6b6b); color:#23141b; }
+/* ==== Category Color Chips ==== */
+.chip-cat{
+  display:inline-flex; align-items:center; gap:6px;
+  padding:6px 10px; border-radius:999px; font-weight:800; font-size:.86rem;
+  border:1px solid transparent; letter-spacing:.2px;
+}
+
+/* Labour = coral */
+.chip-labour{ color:#2a0f14; background:#ffdedf; border-color:#ffc2c7; }
+
+/* Fertilizer = mint */
+.chip-fertilizer{ color:#082318; background:#caffe2; border-color:#a5ffd0; }
+
+/* Pesticide = amber */
+.chip-pesticide{ color:#3a2400; background:#ffe8b7; border-color:#ffd98c; }
+
+/* Irrigation = sky */
+.chip-irrigation{ color:#0a2332; background:#d6f0ff; border-color:#bfe4ff; }
+
+/* Harvest = violet */
+.chip-harvest{ color:#25123b; background:#ead6ff; border-color:#ddc0ff; }
+
+/* Expense = gray */
+.chip-expense{ color:#1c2436; background:#dde5f3; border-color:#cdd7ea; }
+
+/* Other = blue */
+.chip-other{ color:#0c1d3a; background:#d7e5ff; border-color:#c2d6ff; }
+
+/* Small dot inside chips (used for table rows) */
+.dot{
+  width:8px; height:8px; border-radius:999px; display:inline-block;
+  box-shadow: 0 0 0 2px rgba(255,255,255,.35) inset;
+}
+.dot.labour{ background:#ff6b6b; }
+.dot.fertilizer{ background:#22c55e; }
+.dot.pesticide{ background:#ff9f1c; }
+.dot.irrigation{ background:#3abef9; }
+.dot.harvest{ background:#a78bfa; }
+.dot.expense{ background:#94a3b8; }
+.dot.other{ background:#60a5fa; }
+
