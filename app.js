@@ -1,43 +1,218 @@
-const LS_KEY='farm_records_v2';const SETTINGS_KEY='farm_settings_v1';const LANG_KEY='farm_lang_v1';
-const $=s=>document.querySelector(s);const $$=s=>document.querySelectorAll(s);
-const DEFAULT_SETTINGS={plots:['Block A','Block B','Block C'],wagePerHour:50,currency:'₹',templates:[{name:'Weeding - Labour (4 people, 6 hrs)',category:'Labour',activity:'Weeding',material:'',quantity:6,unit:'hrs',laborers:4,hours:6,cost:''},{name:'Fertilizer - Urea 50 kg',category:'Fertilizer',activity:'Basal application',material:'Urea',quantity:50,unit:'kg',laborers:0,hours:0,cost:''},{name:'Pesticide - Neem oil spray 2 L',category:'Pesticide',activity:'Foliar spray',material:'Neem oil',quantity:2,unit:'L',laborers:0,hours:0,cost:''},{name:'Irrigation - Drip running 5 hrs',category:'Irrigation',activity:'Drip irrigation',material:'',quantity:5,unit:'hrs',laborers:0,hours:5,cost:''},{name:'Harvest - Green cardamom 25 kg',category:'Harvest',activity:'Harvesting',material:'Green pods',quantity:25,unit:'kg',laborers:0,hours:0,cost:''},{name:'Expense - Spare parts',category:'Expense',activity:'Pump maintenance',material:'Spare parts',quantity:1,unit:'',laborers:0,hours:0,cost:''}]};
-function loadSettings(){try{return{...DEFAULT_SETTINGS,...(JSON.parse(localStorage.getItem(SETTINGS_KEY))||{})}}catch{return DEFAULT_SETTINGS}}
-function saveSettings(s){localStorage.setItem(SETTINGS_KEY,JSON.stringify(s))}
-function loadRecords(){try{return JSON.parse(localStorage.getItem(LS_KEY))||[]}catch{return[]}}
-function saveRecords(r){localStorage.setItem(LS_KEY,JSON.stringify(r))}
-function currency(n){const s=loadSettings();const v=Number(n||0);return s.currency+v.toFixed(2)}
-function todayISO(){const d=new Date();const o=d.getTimezoneOffset()*60000;return new Date(d-o).toISOString().slice(0,10)}
-const i18n={en:{app_title:'Farm Activity & Expense Tracker',dashboard:'Dashboard',add_entry:'Add Entry',records:'Records',export_csv:'Export CSV',backup_json:'Backup (JSON)',restore:'Restore',dashboard_month:'Dashboard (This Month)',total_cost:'Total Cost',by_category:'By Category',entries:'Entries',backup_hint:'Tip: Use “Backup (JSON)” weekly to save to your cloud drive.',quick_templates:'Quick Templates',apply:'Apply',date:'Date',category:'Category',plot:'Plot/Block',activity:'Activity',material:'Material (if any)',quantity:'Quantity',unit:'Unit',labourers:'Labourers',hours:'Hours',cost:'Cost (₹)',notes:'Notes',save:'Save',reset:'Reset',from:'From',to:'To',all:'All',search:'Search',activity_material:'Activity / Material',qty_short:'Qty',lab_short:'Lab',hrs_short:'Hrs',total:'Total',settings:'Settings',plots_list:'Plots/Blocks (comma separated)',wage_rate:'Wage Rate per Hour (₹)',wage_hint:'Used to auto-calc Labour cost: labourers × hours × rate',currency_symbol:'Currency Symbol',footer_note:'Made for your farm • Offline-first • Local-only data',confirm_delete:'Delete this entry?',restore_complete:'Restore complete!',restore_failed:'Failed to restore: ',edit_entry:'Edit Entry',update:'Update'},kn:{app_title:'ಕೃಷಿ ಚಟುವಟಿಕೆ ಮತ್ತು ವೆಚ್ಚ ಟ್ರ್ಯಾಕರ್',dashboard:'ಡ್ಯಾಶ್‌ಬೋರ್ಡ್',add_entry:'ದಾಖಲನ್ನು ಸೇರಿಸಿ',records:'ದಾಖಲೆಗಳು',export_csv:'CSV ಎಕ್ಸ್ಪೋರ್ಟ್',backup_json:'ಬ್ಯಾಕಪ್ (JSON)',restore:'ಮರುಸ್ಥಾಪನೆ',dashboard_month:'ಈ ತಿಂಗಳ ಡ್ಯಾಶ್‌ಬೋರ್ಡ್',total_cost:'ಒಟ್ಟು ವೆಚ್ಚ',by_category:'ವರ್ಗಾನುಸಾರ',entries:'ಎಂಟ್ರೀಗಳು',backup_hint:'ವಾರಕ್ಕೊಮ್ಮೆ “ಬ್ಯಾಕಪ್ (JSON)” ಅನ್ನು ಬಳಸಿ ನಿಮ್ಮ ಕ್ಲೌಡ್ ಡ್ರೈವ್‌ಗೆ ಉಳಿಸಿ.',quick_templates:'ತ್ವರಿತ ಟೆಂಪ್ಲೇಟ್ಗಳು',apply:'ಅನ್ವಯಿಸಿ',date:'ದಿನಾಂಕ',category:'ವರ್ಗ',plot:'ಪ್ಲಾಟ್/ಬ್ಲಾಕ್',activity:'ಚಟುವಟಿಕೆ',material:'ವಸ್ತು',quantity:'ಪ್ರಮಾಣ',unit:'ಘಟಕ',labourers:'ಕಾರ್ಮಿಕರು',hours:'ಗಂಟೆಗಳು',cost:'ವೆಚ್ಚ (₹)',notes:'ಟಿಪ್ಪಣಿಗಳು',save:'ಉಳಿಸಿ',reset:'ಮರುಹೊಂದಿಸಿ',from:'ಇಂದಿಂದ',to:'ತನಕ',all:'ಎಲ್ಲ',search:'ಹುಡುಕಿ',activity_material:'ಚಟುವಟಿಕೆ / ವಸ್ತು',qty_short:'ಪ್ರಮಾ.',lab_short:'ಕಾರ್ಮಿ.',hrs_short:'ಗಂ.',total:'ಒಟ್ಟು',settings:'ಸೆಟ್ಟಿಂಗ್‌ಗಳು',plots_list:'ಪ್ಲಾಟ್/ಬ್ಲಾಕ್ ಹೆಸರುಗಳು (ಅಲ್ಪವಿರಾಮದಿಂದ ಬೇರ್ಪಡಿಸಿ)',wage_rate:'ಪ್ರತಿ ಗಂಟೆಗೆ ಕೂಲಿ (₹)',wage_hint:'ಕಾರ್ಮಿಕರು × ಗಂಟೆಗಳು × ದರ ಆಧರಿಸಿ ವೆಚ್ಚ ಲೆಕ್ಕ',currency_symbol:'ಕರೆನ್ಸಿ ಚಿಹ್ನೆ',footer_note:'ನಿಮ್ಮ ತೋಟಕ್ಕೆ • ಆಫ್‌ಲೈನ್ • ಸ್ಥಳೀಯ ಡೇಟಾ',confirm_delete:'ಈ ದಾಖಲೆಯನ್ನು ಅಳಿಸಬೇಕೇ?',restore_complete:'ಮರುಸ್ಥಾಪನೆ ಪೂರ್ಣಗೊಂಡಿದೆ!',restore_failed:'ಮರುಸ್ಥಾಪನೆ ವಿಫಲವಾಗಿದೆ: ',edit_entry:'ದಾಖಲೆ ಸಂಪಾದನೆ',update:'ನವೀಕರಿಸಿ'},ta:{app_title:'விவசாய செயல்கள் & செலவு பதிவாளர்',dashboard:'கட்டுப்பாட்டு பலகை',add_entry:'பதிவு சேர்',records:'பதிவுகள்',export_csv:'CSV ஏற்றுமதி',backup_json:'காப்பு (JSON)',restore:'மீட்டெடு',dashboard_month:'இந்த மாதம் — கட்டுப்பாட்டு பலகை',total_cost:'மொத்த செலவு',by_category:'வகைப்படி',entries:'பதிவுகள் எண்ணிக்கை',backup_hint:'வாரத்திற்கு ஒருமுறை “காப்பு (JSON)” பயன்படுத்தி உங்கள் கிளவுட் டிரைவில் சேமிக்கவும்.',quick_templates:'விரைவு வார்ப்புருக்கள்',apply:'பயன்படுத்து',date:'தேதி',category:'வகை',plot:'பிளாட்/பிளாக்',activity:'செயல்',material:'பொருள்',quantity:'அளவு',unit:'அலகு',labourers:'தொழிலாளர்கள்',hours:'மணி',cost:'செலவு (₹)',notes:'குறிப்புகள்',save:'சேமிக்க',reset:'ரீசெட்',from:'முதல்',to:'வரை',all:'அனைத்து',search:'தேடல்',activity_material:'செயல் / பொருள்',qty_short:'அள.',lab_short:'தொழி.',hrs_short:'மணி',total:'மொத்தம்',settings:'அமைப்புகள்',plots_list:'பிளாட்/பிளாக் (கமா பிரித்து)',wage_rate:'மணி ஒன்றுக்கு கூலி (₹)',wage_hint:'தொழிலாளர்கள் × மணி × விகிதம் அடிப்படையில் செலவு கணக்கிடப்படும்',currency_symbol:'நாணயச் சின்னம்',footer_note:'உங்கள் பண்ணைக்கு • ஆஃப்லைன் • உள்ளூர் தரவு',confirm_delete:'இந்த பதிவை நீக்கவா?',restore_complete:'மீட்டெடுத்தல் முடிந்தது!',restore_failed:'மீட்டெடுக்க முடியவில்லை: ',edit_entry:'பதிவை திருத்து',update:'புதுப்பிக்க'}};
-function getLang(){return localStorage.getItem(LANG_KEY)||'en'}function setLang(l){localStorage.setItem(LANG_KEY,l)}
-function applyI18n(){const lang=getLang();const d=i18n[lang]||i18n.en;$$('[data-i18n]').forEach(el=>{const k=el.getAttribute('data-i18n');if(d[k])el.textContent=d[k]});$('#plot')?.setAttribute('placeholder',lang==='kn'?'ಬ್ಲಾಕ್ A':lang==='ta'?'பிளாக் A':'Block A');$('#activity')?.setAttribute('placeholder',lang==='kn'?'ನಿರಲೆ':lang==='ta'?'களை எடுப்பு':'Weeding');$('#material')?.setAttribute('placeholder',lang==='kn'?'ಯೂರಿಯಾ / ಮ್ಯಾಂಕೋಜೆಬ್':lang==='ta'?'யூரியா / மாங்கோசெப்':'Urea / Mancozeb')}
-$$('.tab-btn').forEach(b=>b.addEventListener('click',()=>{$$('.tab').forEach(t=>t.classList.remove('active'));$('#'+b.dataset.tab).classList.add('active')}));
-const langSelect=$('#langSelect');langSelect.value=getLang();langSelect.addEventListener('change',()=>{setLang(langSelect.value);applyI18n()});
-const form=$('#entryForm');const fields={id:$('#entryId'),date:$('#date'),category:$('#category'),plot:$('#plot'),activity:$('#activity'),material:$('#material'),quantity:$('#quantity'),unit:$('#unit'),laborers:$('#laborers'),hours:$('#hours'),cost:$('#cost'),notes:$('#notes')};
-fields.date.value=todayISO();
-$('#resetBtn').addEventListener('click',()=>{form.reset();fields.id.value='';fields.date.value=todayISO();$('#formTitle').setAttribute('data-i18n','add_entry');$('#formTitle').textContent=(i18n[getLang()]||i18n.en)['add_entry'];$('#saveBtn').setAttribute('data-i18n','save');$('#saveBtn').textContent=(i18n[getLang()]||i18n.en)['save']});
-function autoCalcCostHint(){const s=loadSettings();const d=i18n[getLang()]||i18n.en;if((fields.category.value||'')==='Labour'){const lab=Number(fields.laborers.value||0);const hrs=Number(fields.hours.value||0);const rate=Number(s.wagePerHour||0);if(lab>0&&hrs>0&&rate>0){const calc=lab*hrs*rate;$('#autoCostHint').textContent=`${d.wage_hint} = ${lab}×${hrs}×${rate} = ${currency(calc)}`;if(!fields.cost.value)fields.cost.value=calc.toFixed(2)}else{$('#autoCostHint').textContent=''}}else{$('#autoCostHint').textContent=''}}
-;['input','change'].forEach(ev=>{fields.category.addEventListener(ev,autoCalcCostHint);fields.laborers.addEventListener(ev,autoCalcCostHint);fields.hours.addEventListener(ev,autoCalcCostHint)});
-form.addEventListener('submit',e=>{e.preventDefault();const rec={id:fields.id.value||(crypto.randomUUID?crypto.randomUUID():String(Date.now())),date:fields.date.value,category:fields.category.value,plot:fields.plot.value.trim(),activity:fields.activity.value.trim(),material:fields.material.value.trim(),quantity:parseFloat(fields.quantity.value||0),unit:fields.unit.value.trim(),laborers:parseInt(fields.laborers.value||0),hours:parseFloat(fields.hours.value||0),cost:parseFloat(fields.cost.value||0),notes:fields.notes.value.trim(),createdAt:Date.now()};if(!rec.date||!rec.category){alert((i18n[getLang()]||i18n.en)['date']+' & '+(i18n[getLang()]||i18n.en)['category']+' required');return}let r=loadRecords();const idx=r.findIndex(x=>x.id===rec.id);if(idx>=0){r[idx]=rec}else{r.push(rec)}saveRecords(r);renderDashboard();renderTable();$('#resetBtn').click();document.querySelector('[data-tab="records"]').click()});
-const filter={from:$('#filterFrom'),to:$('#filterTo'),category:$('#filterCategory'),search:$('#filterSearch')};[filter.from,filter.to,filter.category,filter.search].forEach(el=>el.addEventListener('input',renderTable));
-function inRange(d,f,t){if(f&&d<f)return false;if(t&&d>t)return false;return true}
-function renderDashboard(){const r=loadRecords();const ym=new Date().toISOString().slice(0,7);const m=r.filter(x=>(x.date||'').startsWith(ym));const total=m.reduce((s,x)=>s+(x.cost||0),0);$('#totalCost').textContent=currency(total);$('#entryCount').textContent=String(m.length);const byCat=m.reduce((a,x)=>{const k=x.category||'Uncategorized';a[k]=(a[k]||0)+(x.cost||0);return a},{});const ul=$('#byCategory');ul.innerHTML='';Object.entries(byCat).sort((a,b)=>b[1]-a[1]).forEach(([k,v])=>{const li=document.createElement('li');li.textContent=`${k}: ${currency(v)}`;ul.appendChild(li)})}
-function renderTable(){const tbody=$('#recordsTable tbody');tbody.innerHTML='';let r=loadRecords();r=r.filter(x=>{const md=inRange(x.date||'',filter.from.value||'',filter.to.value||'');const mc=!filter.category.value||x.category===filter.category.value;const q=(filter.search.value||'').toLowerCase();const hay=[x.plot,x.activity,x.material,x.notes].join(' ').toLowerCase();const mt=!q||hay.includes(q);return md&&mc&&mt});r.sort((a,b)=>(b.date||'').localeCompare(a.date||'')||b.createdAt-a.createdAt);let total=0;const d=i18n[getLang()]||i18n.en;r.forEach(x=>{total+=(x.cost||0);const tr=document.createElement('tr');tr.innerHTML=`<td>${x.date||''}</td><td>${x.category||''}</td><td>${x.plot||''}</td><td><strong>${x.activity||''}</strong>${x.material?' / '+x.material:''}</td><td>${x.quantity||''}</td><td>${x.unit||''}</td><td>${x.laborers||''}</td><td>${x.hours||''}</td><td>${x.cost?currency(x.cost):''}</td><td>${x.notes||''}</td><td class='row-actions'><button class='secondary' data-action='edit' data-id='${x.id}'>${d.edit_entry}</button><button class='danger' data-action='del' data-id='${x.id}'>DEL</button></td>`;tbody.appendChild(tr)});$('#tableTotal').textContent=currency(total);tbody.querySelectorAll('button').forEach(btn=>{btn.addEventListener('click',()=>{const id=btn.dataset.id;let r=loadRecords();const i=r.findIndex(x=>x.id===id);if(i<0)return;const d=i18n[getLang()]||i18n.en;if(btn.dataset.action==='edit'){const x=r[i];fields.id.value=x.id;fields.date.value=x.date||todayISO();fields.category.value=x.category||'';fields.plot.value=x.plot||'';fields.activity.value=x.activity||'';fields.material.value=x.material||'';fields.quantity.value=x.quantity||'';fields.unit.value=x.unit||'';fields.laborers.value=x.laborers||'';fields.hours.value=x.hours||'';fields.cost.value=x.cost||'';fields.notes.value=x.notes||'';$('#formTitle').textContent=d.edit_entry;$('#saveBtn').textContent=d.update;document.querySelector('[data-tab="add"]').click()}else if(btn.dataset.action==='del'){if(confirm(d.confirm_delete)){r.splice(i,1);saveRecords(r);renderDashboard();renderTable()}}})})}
-function toCSV(r){const cols=['date','category','plot','activity','material','quantity','unit','laborers','hours','cost','notes'];const esc=v=>{if(v==null)return'';const s=String(v).replace(/"/g,'""');return`"${s}"`};const lines=[cols.join(',')];r.forEach(x=>lines.push(cols.map(c=>esc(x[c])).join(',')));return lines.join('\n')}
-function download(fn,content,type='text/plain'){const b=new Blob([content],{type});const url=URL.createObjectURL(b);const a=document.createElement('a');a.href=url;a.download=fn;a.click();URL.revokeObjectURL(url)}
-$('#exportCsvBtn').addEventListener('click',()=>{const csv=toCSV(loadRecords());download(`farm-records-${new Date().toISOString().slice(0,10)}.csv`,csv,'text/csv')});
-$('#exportJsonBtn').addEventListener('click',()=>{download(`farm-records-backup-${new Date().toISOString().slice(0,10)}.json`,JSON.stringify(loadRecords(),null,2),'application/json')});
-$('#importJsonInput').addEventListener('change',async e=>{const f=e.target.files?.[0];if(!f)return;const text=await f.text();try{const data=JSON.parse(text);if(!Array.isArray(data))throw new Error('Invalid backup file');const cur=loadRecords();const map=new Map(cur.map(r=>[r.id,r]));data.forEach(r=>{const nid=r.id||(crypto.randomUUID?crypto.randomUUID():String(Date.now()+Math.random()));map.set(nid,{...map.get(r.id),...r,id:nid})});const merged=Array.from(map.values());saveRecords(merged);renderDashboard();renderTable();alert((i18n[getLang()]||i18n.en)['restore_complete'])}catch(err){alert((i18n[getLang()]||i18n.en)['restore_failed']+err.message)}finally{e.target.value=''}});
-function renderSettings(){const s=loadSettings();$('#settingsPlots')?.remove();/* settings UI exists in index */}
-(function init(){if(!localStorage.getItem(SETTINGS_KEY))saveSettings(DEFAULT_SETTINGS);applyI18n();
-// Build settings section controls now (since we removed helper earlier)
-const settingsSection=document.querySelector('#settings .grid');if(settingsSection){settingsSection.innerHTML=`
-  <div><label data-i18n='plots_list'>Plots/Blocks (comma separated)</label><textarea id='settingsPlots' rows='3' placeholder='Block A, Block B, Block C'></textarea></div>
-  <div><label data-i18n='wage_rate'>Wage Rate per Hour (₹)</label><input type='number' id='settingsWage' step='1' min='0' placeholder='50'/><small class='muted' data-i18n='wage_hint'>Used to auto-calc Labour cost: labourers × hours × rate</small></div>
-  <div><label data-i18n='currency_symbol'>Currency Symbol</label><input type='text' id='settingsCurrency' maxlength='3' placeholder='₹'/></div>`;
-  const s=loadSettings();document.getElementById('settingsPlots').value=(s.plots||[]).join(', ');document.getElementById('settingsWage').value=s.wagePerHour||'';document.getElementById('settingsCurrency').value=s.currency||'₹';
-  const dl=document.getElementById('plotsList');dl.innerHTML='';(s.plots||[]).forEach(p=>{const o=document.createElement('option');o.value=p;dl.appendChild(o)});
-  const tsel=document.getElementById('templateSelect');tsel.innerHTML='';(s.templates||[]).forEach((t,i)=>{const o=document.createElement('option');o.value=String(i);o.textContent=t.name;tsel.appendChild(o)});
-  const saveBtn=document.createElement('button');saveBtn.id='saveSettingsBtn';saveBtn.textContent=(i18n[getLang()]||i18n.en)['save'];saveBtn.addEventListener('click',()=>{const plots=document.getElementById('settingsPlots').value.split(',').map(s=>s.trim()).filter(Boolean);const wage=Number(document.getElementById('settingsWage').value||0);const cur=(document.getElementById('settingsCurrency').value||'₹').trim().slice(0,3);const s=loadSettings();s.plots=plots;s.wagePerHour=wage;s.currency=cur;saveSettings(s);alert('Saved');const dl=document.getElementById('plotsList');dl.innerHTML='';(s.plots||[]).forEach(p=>{const o=document.createElement('option');o.value=p;dl.appendChild(o)});});
-  settingsSection.parentElement.querySelector('.actions')?.remove();const actions=document.createElement('div');actions.className='actions';actions.appendChild(saveBtn);settingsSection.parentElement.appendChild(actions);
+// ===== Keys =====
+const LS_KEY = 'farm_records_v2';
+const SETTINGS_KEY = 'farm_settings_v1';
+const LANG_KEY = 'farm_lang_v1';
+
+// ===== Helpers =====
+const $  = (s) => document.querySelector(s);
+const $$ = (s) => document.querySelectorAll(s);
+
+const DEFAULT_SETTINGS = {
+  plots: ['Block A','Block B','Block C'],
+  wagePerHour: 50,
+  currency: '₹',
+  templates: [
+    { name: 'Weeding - Labour (4 people, 6 hrs)', category:'Labour', activity:'Weeding', material:'', quantity:6, unit:'hrs', laborers:4, hours:6, cost:'' },
+    { name: 'Fertilizer - Urea 50 kg', category:'Fertilizer', activity:'Basal application', material:'Urea', quantity:50, unit:'kg', laborers:0, hours:0, cost:'' },
+    { name: 'Pesticide - Neem oil spray 2 L', category:'Pesticide', activity:'Foliar spray', material:'Neem oil', quantity:2, unit:'L', laborers:0, hours:0, cost:'' },
+    { name: 'Irrigation - Drip running 5 hrs', category:'Irrigation', activity:'Drip irrigation', material:'', quantity:5, unit:'hrs', laborers:0, hours:5, cost:'' },
+    { name: 'Harvest - Green cardamom 25 kg', category:'Harvest', activity:'Harvesting', material:'Green pods', quantity:25, unit:'kg', laborers:0, hours:0, cost:'' },
+    { name: 'Expense - Spare parts', category:'Expense', activity:'Pump maintenance', material:'Spare parts', quantity:1, unit:'', laborers:0, hours:0, cost:'' },
+  ]
+};
+
+// Storage
+const loadSettings = () => { try { return { ...DEFAULT_SETTINGS, ...(JSON.parse(localStorage.getItem(SETTINGS_KEY))||{}) }; } catch { return DEFAULT_SETTINGS; } };
+const saveSettings = (s) => localStorage.setItem(SETTINGS_KEY, JSON.stringify(s));
+const loadRecords  = () => { try { return JSON.parse(localStorage.getItem(LS_KEY)) || []; } catch { return []; } };
+const saveRecords  = (recs) => localStorage.setItem(LS_KEY, JSON.stringify(recs));
+
+// Currency
+function currency(n){ const s = loadSettings(); const v = Number(n||0); return (s.currency||'₹') + v.toFixed(2); }
+function todayISO(){ const d=new Date(); const tz=d.getTimezoneOffset()*60000; return new Date(d-tz).toISOString().slice(0,10); }
+
+// i18n (kept for control labels; does NOT override your custom title or h1)
+const i18n = {
+  en: { edit_entry:'Edit Entry', update:'Update', confirm_delete:'Delete this entry?', restore_complete:'Restore complete!', restore_failed:'Failed to restore: ', wage_hint:'Used to auto-calc Labour cost: labourers × hours × rate' },
+  kn: { edit_entry:'ದಾಖಲೆ ಸಂಪಾದನೆ', update:'ನವೀಕರಿಸಿ', confirm_delete:'ಈ ದಾಖಲೆಯನ್ನು ಅಳಿಸಬೇಕೇ?', restore_complete:'ಮರುಸ್ಥಾಪನೆ ಪೂರ್ಣಗೊಂಡಿದೆ!', restore_failed:'ಮರುಸ್ಥಾಪನೆ ವಿಫಲವಾಗಿದೆ: ', wage_hint:'ಕಾರ್ಮಿಕರು × ಗಂಟೆಗಳು × ದರ ಆಧರಿಸಿ ವೆಚ್ಚ ಲೆಕ್ಕ' },
+  ta: { edit_entry:'பதிவை திருத்து', update:'புதுப்பிக்க', confirm_delete:'இந்த பதிவை நீக்கவா?', restore_complete:'மீட்டெடுத்தல் முடிந்தது!', restore_failed:'மீட்டெடுக்க முடியவில்லை: ', wage_hint:'தொழிலாளர்கள் × மணி × விகிதம் அடிப்படையில் செலவு கணக்கிடப்படும்' }
+};
+function getLang(){ return localStorage.getItem(LANG_KEY) || 'en'; }
+function setLang(l){ localStorage.setItem(LANG_KEY, l); }
+
+// Apply only placeholders and small labels, not title/h1
+function applyI18n() {
+  const lang = getLang();
+  const dict = i18n[lang] || i18n.en;
+  // placeholders
+  $('#plot')?.setAttribute('placeholder', lang==='kn'?'ಬ್ಲಾಕ್ A': lang==='ta'?'பிளாக் A':'Block A');
+  $('#activity')?.setAttribute('placeholder', lang==='kn'?'ನಿರಲೆ': lang==='ta'?'களை எடுப்பு':'Weeding');
+  $('#material')?.setAttribute('placeholder', lang==='kn'?'ಯೂರಿಯಾ / ಮ್ಯಾಂಕೋಜೆಬ್': lang==='ta'?'யூரியா / மாங்கோசெப்':'Urea / Mancozeb');
 }
-renderDashboard();renderTable();})();
+
+// Tabs
+$$('.tab-btn').forEach(b=>{
+  b.addEventListener('click', ()=>{
+    $$('.tab-btn').forEach(x=>x.classList.remove('active'));
+    b.classList.add('active');
+    $$('.tab').forEach(t=>t.classList.remove('active'));
+    $('#'+b.dataset.tab).classList.add('active');
+  });
+});
+
+// Language select
+const langSelect = $('#langSelect');
+langSelect.value = getLang();
+langSelect.addEventListener('change', ()=>{ setLang(langSelect.value); applyI18n(); });
+
+// Form
+const form = $('#entryForm');
+const fields = {
+  id: $('#entryId'), date: $('#date'), category: $('#category'), plot: $('#plot'),
+  activity: $('#activity'), material: $('#material'), quantity: $('#quantity'),
+  unit: $('#unit'), laborers: $('#laborers'), hours: $('#hours'),
+  cost: $('#cost'), notes: $('#notes')
+};
+fields.date.value = todayISO();
+
+$('#resetBtn').addEventListener('click', ()=>{
+  form.reset(); fields.id.value=''; fields.date.value=todayISO();
+  $('#saveBtn').textContent='Save';
+});
+
+function autoCostHint(){
+  const s = loadSettings();
+  const dict = i18n[getLang()] || i18n.en;
+  if ((fields.category.value||'') === 'Labour') {
+    const lab = Number(fields.laborers.value||0);
+    const hrs = Number(fields.hours.value||0);
+    const rate = Number(s.wagePerHour||0);
+    if (lab>0 && hrs>0 && rate>0) {
+      const calc = lab*hrs*rate;
+      $('#autoCostHint').textContent = `${dict.wage_hint} = ${lab}×${hrs}×${rate} = ${currency(calc)}`;
+      if (!fields.cost.value) fields.cost.value = calc.toFixed(2);
+    } else { $('#autoCostHint').textContent=''; }
+  } else { $('#autoCostHint').textContent=''; }
+}
+['input','change'].forEach(ev=>{
+  fields.category.addEventListener(ev, autoCostHint);
+  fields.laborers.addEventListener(ev, autoCostHint);
+  fields.hours.addEventListener(ev, autoCostHint);
+});
+
+form.addEventListener('submit',(e)=>{
+  e.preventDefault();
+  const rec = {
+    id: fields.id.value || (crypto.randomUUID ? crypto.randomUUID() : String(Date.now())),
+    date: fields.date.value, category: fields.category.value,
+    plot: fields.plot.value.trim(), activity: fields.activity.value.trim(),
+    material: fields.material.value.trim(), quantity: parseFloat(fields.quantity.value||0),
+    unit: fields.unit.value.trim(), laborers: parseInt(fields.laborers.value||0),
+    hours: parseFloat(fields.hours.value||0), cost: parseFloat(fields.cost.value||0),
+    notes: fields.notes.value.trim(), createdAt: Date.now()
+  };
+  if (!rec.date || !rec.category) { alert('Date & Category required'); return; }
+  const list = loadRecords();
+  const idx = list.findIndex(r=>r.id===rec.id);
+  if (idx>=0) list[idx]=rec; else list.push(rec);
+  saveRecords(list);
+  renderDashboard(); renderTable();
+  $('#resetBtn').click();
+  document.querySelector('[data-tab="records"]').click();
+});
+
+// Filters
+const filter = { from: $('#filterFrom'), to: $('#filterTo'), category: $('#filterCategory'), search: $('#filterSearch') };
+[filter.from, filter.to, filter.category, filter.search].forEach(el => el.addEventListener('input', renderTable));
+
+function inRange(d,f,t){ if (f && d < f) return false; if (t && d > t) return false; return true; }
+
+// Dashboard
+function renderDashboard(){
+  const list = loadRecords();
+  const ym = new Date().toISOString().slice(0,7);
+  const month = list.filter(r => (r.date||'').startsWith(ym));
+  const total = month.reduce((s,r)=>s+(r.cost||0),0);
+  $('#totalCost').textContent = currency(total);
+  $('#entryCount').textContent = String(month.length);
+
+  const byCat = month.reduce((a,r)=>{ const k=r.category||'Uncategorized'; a[k]=(a[k]||0)+(r.cost||0); return a; },{});
+  const ul = $('#byCategory'); ul.innerHTML='';
+  Object.entries(byCat).sort((a,b)=>b[1]-a[1]).forEach(([k,v])=>{
+    const li = document.createElement('li');
+    li.className='badge';
+    li.textContent = `${k}: ${currency(v)}`;
+    ul.appendChild(li);
+  });
+}
+
+// Table
+function renderTable(){
+  const tbody = $('#recordsTable tbody'); tbody.innerHTML='';
+  let list = loadRecords();
+  list = list.filter(r=>{
+    const okDate = inRange(r.date||'', filter.from.value||'', filter.to.value||'');
+    const okCat  = !filter.category.value || r.category === filter.category.value;
+    const q = (filter.search.value||'').toLowerCase();
+    const hay = [r.plot,r.activity,r.material,r.notes].join(' ').toLowerCase();
+    const okText = !q || hay.includes(q);
+    return okDate && okCat && okText;
+  });
+  list.sort((a,b)=> (b.date||'').localeCompare(a.date||'') || b.createdAt-a.createdAt);
+
+  let total = 0;
+  const dict = i18n[getLang()] || i18n.en;
+  list.forEach(r=>{
+    total += (r.cost||0);
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${r.date||''}</td>
+      <td><span class="tag">${r.category||''}</span></td>
+      <td>${r.plot||''}</td>
+      <td><strong>${r.activity||''}</strong>${r.material? ' / '+r.material:''}</td>
+      <td>${r.quantity||''}</td>
+      <td>${r.unit||''}</td>
+      <td>${r.laborers||''}</td>
+      <td>${r.hours||''}</td>
+      <td>${r.cost? currency(r.cost):''}</td>
+      <td>${r.notes||''}</td>
+      <td class="row-actions">
+        <button class="btn small outline" data-action="edit" data-id="${r.id}">${dict.edit_entry}</button>
+        <button class="btn small danger" data-action="del" data-id="${r.id}">DEL</button>
+      </td>`;
+    tbody.appendChild(tr);
+  });
+  $('#tableTotal').textContent = currency(total);
+
+  // actions
+  tbody.querySelectorAll('button').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const id = btn.dataset.id;
+      const list = loadRecords();
+      const idx = list.findIndex(r=>r.id===id); if (idx<0) return;
+      if (btn.dataset.action==='edit'){
+        const r = list[idx];
+        fields.id.value=r.id; fields.date.value=r.date||todayISO(); fields.category.value=r.category||'';
+        fields.plot.value=r.plot||''; fields.activity.value=r.activity||''; fields.material.value=r.material||'';
+        fields.quantity.value=r.quantity||''; fields.unit.value=r.unit||''; fields.laborers.value=r.laborers||'';
+        fields.hours.value=r.hours||''; fields.cost.value=r.cost||''; fields.notes.value=r.notes||'';
+        $('#saveBtn').textContent = (i18n[getLang()]||i18n.en).update;
+        document.querySelector('[data-tab="add"]').click();
+      } else if (btn.dataset.action==='del'){
+        if (confirm((i18n[getLang()]||i18n.en).confirm_delete)) {
+          list.splice(idx,1); saveRecords(list); renderDashboard(); renderTable();
+        }
+      }
+    });
+  });
+}
+
+// Export / Import
+function toCSV(records){
+  const cols = ['date','category','plot','activity','material','quantity','unit','laborers','hours','cost','notes'];
+  const esc = (v)=>{ if(v==null) return ''; const s=String(v).replace(/"/g,'""'); return `"${s}"`; };
+  const lines = [cols.join(',')];
+  records.forEach(r=> lines.push(cols.map(c=>esc(r[c])).join(',')));
+  return lines.join('\n');
+}
+function download(filename, content, type='text/plain'){
