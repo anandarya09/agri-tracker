@@ -1,0 +1,32 @@
+:root{--bg:#0f172a;--panel:#111827;--card:#1f2937;--text:#e5e7eb;--muted:#9ca3af;--accent:#22c55e;--accent-2:#06b6d4;--danger:#ef4444}
+*{box-sizing:border-box}
+body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,'Noto Sans Kannada','Noto Sans Tamil',sans-serif;background:linear-gradient(180deg,#0b1022,#111827);color:var(--text)}
+header{padding:16px;border-bottom:1px solid #1f2937;background:#0b1220aa;backdrop-filter:blur(6px);position:sticky;top:0;z-index:10}
+h1{margin:0 0 8px;font-size:1.4rem}
+nav{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+nav button,.import-label,select#langSelect{background:var(--card);color:var(--text);border:1px solid #2b3440;border-radius:8px;padding:8px 12px;cursor:pointer;font-weight:600}
+nav button:hover,.import-label:hover,select#langSelect:hover{border-color:var(--accent-2)}
+.import-label{display:inline-flex;align-items:center;gap:6px}
+.spacer{flex:1}
+main{max-width:1100px;margin:20px auto;padding:0 16px}
+.tab{display:none}.tab.active{display:block}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+label{display:block;font-size:.9rem;color:var(--muted);margin-bottom:4px}
+input,select,textarea{width:100%;padding:10px;border-radius:8px;border:1px solid #2b3440;background:#0b1022;color:var(--text)}
+textarea{resize:vertical}
+.actions{margin-top:12px;display:flex;gap:8px}
+button{background:var(--accent);border:none;color:#062b15;padding:10px 14px;border-radius:8px;font-weight:700;cursor:pointer}
+button.secondary{background:#374151;color:#e5e7eb}
+button.danger{background:var(--danger);color:#fff}
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+.card{background:var(--panel);border:1px solid #2b3440;border-radius:12px;padding:12px}
+.card h3{margin:0 0 6px}
+.hint,.muted{color:var(--muted);margin-top:6px;display:block}
+.filters{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin-bottom:10px}
+table{width:100%;border-collapse:collapse;background:var(--panel);border:1px solid #2b3440;border-radius:8px;overflow:hidden}
+th,td{border-bottom:1px solid #2b3440;padding:8px;font-size:.92rem;vertical-align:top}
+thead th{background:#0b1022;text-align:left}
+footer{text-align:center;color:var(--muted);padding:30px 0}
+.templates{margin-bottom:10px}.templates summary{cursor:pointer}
+.template-row{display:flex;gap:8px;align-items:center;margin-top:8px}
+.row-actions{white-space:nowrap;display:flex;gap:6px}
