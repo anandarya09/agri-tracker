@@ -13,12 +13,14 @@
       <div class="logo-dot"></div>
       <h1>EverGreen Farm Activity & Expense Tracker</h1>
     </div>
+
     <nav class="tabs">
       <button class="tab-btn active" data-tab="dashboard">Dashboard</button>
       <button class="tab-btn" data-tab="add">Add Entry</button>
       <button class="tab-btn" data-tab="records">Records</button>
       <button class="tab-btn" data-tab="settings">Settings</button>
     </nav>
+
     <div class="header-actions">
       <button id="exportCsvBtn" class="btn small">Export CSV</button>
       <button id="exportJsonBtn" class="btn small secondary">Backup (JSON)</button>
@@ -47,7 +49,7 @@
 
         <div class="card stat gradient-cyan">
           <h3>By Category</h3>
-          <ul id="byCategory" class="list"></ul>
+          <div id="byCategory"></div>
           <span class="chip">Top spend categories</span>
         </div>
 
