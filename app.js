@@ -8,8 +8,8 @@ const $  = (s) => document.querySelector(s);
 const $$ = (s) => document.querySelectorAll(s);
 
 const DEFAULT_SETTINGS = {
-  plots: ['Block A','Block B','Block C'],
-  wagePerHour: 50,
+  plots: ['Kamaktchi 3 Acre','Paravakadu 2 Acre','Block C'],
+  wagePerHour: 600,
   currency: '₹',
   templates: [
     { name: 'Weeding - Labour (4 people, 6 hrs)', category:'Labour', activity:'Weeding', material:'', quantity:6, unit:'hrs', laborers:4, hours:6, cost:'' },
@@ -31,7 +31,7 @@ const saveRecords  = (recs) => localStorage.setItem(LS_KEY, JSON.stringify(recs)
 function currency(n){ const s = loadSettings(); const v = Number(n||0); return (s.currency||'₹') + v.toFixed(2); }
 function todayISO(){ const d=new Date(); const tz=d.getTimezoneOffset()*60000; return new Date(d-tz).toISOString().slice(0,10); }
 
-// i18n (kept for control labels; does NOT override your custom title or h1)
+// i18n (kept for placeholders/hints only; does NOT override title/h1)
 const i18n = {
   en: { edit_entry:'Edit Entry', update:'Update', confirm_delete:'Delete this entry?', restore_complete:'Restore complete!', restore_failed:'Failed to restore: ', wage_hint:'Used to auto-calc Labour cost: labourers × hours × rate' },
   kn: { edit_entry:'ದಾಖಲೆ ಸಂಪಾದನೆ', update:'ನವೀಕರಿಸಿ', confirm_delete:'ಈ ದಾಖಲೆಯನ್ನು ಅಳಿಸಬೇಕೇ?', restore_complete:'ಮರುಸ್ಥಾಪನೆ ಪೂರ್ಣಗೊಂಡಿದೆ!', restore_failed:'ಮರುಸ್ಥಾಪನೆ ವಿಫಲವಾಗಿದೆ: ', wage_hint:'ಕಾರ್ಮಿಕರು × ಗಂಟೆಗಳು × ದರ ಆಧರಿಸಿ ವೆಚ್ಚ ಲೆಕ್ಕ' },
@@ -40,11 +40,9 @@ const i18n = {
 function getLang(){ return localStorage.getItem(LANG_KEY) || 'en'; }
 function setLang(l){ localStorage.setItem(LANG_KEY, l); }
 
-// Apply only placeholders and small labels, not title/h1
+// Apply only placeholders (avoid overriding custom title)
 function applyI18n() {
   const lang = getLang();
-  const dict = i18n[lang] || i18n.en;
-  // placeholders
   $('#plot')?.setAttribute('placeholder', lang==='kn'?'ಬ್ಲಾಕ್ A': lang==='ta'?'பிளாக் A':'Block A');
   $('#activity')?.setAttribute('placeholder', lang==='kn'?'ನಿರಲೆ': lang==='ta'?'களை எடுப்பு':'Weeding');
   $('#material')?.setAttribute('placeholder', lang==='kn'?'ಯೂರಿಯಾ / ಮ್ಯಾಂಕೋಜೆಬ್': lang==='ta'?'யூரியா / மாங்கோசெப்':'Urea / Mancozeb');
@@ -127,6 +125,18 @@ const filter = { from: $('#filterFrom'), to: $('#filterTo'), category: $('#filte
 
 function inRange(d,f,t){ if (f && d < f) return false; if (t && d > t) return false; return true; }
 
+// ===== Category → CSS class helpers =====
+const CAT_CLASS = {
+  Labour: 'labour',
+  Fertilizer: 'fertilizer',
+  Pesticide: 'pesticide',
+  Irrigation: 'irrigation',
+  Harvest: 'harvest',
+  Expense: 'expense',
+  Other: 'other'
+};
+function catNameToClass(name){ return CAT_CLASS[name] || 'other'; }
+
 // Dashboard
 function renderDashboard(){
   const list = loadRecords();
@@ -136,14 +146,16 @@ function renderDashboard(){
   $('#totalCost').textContent = currency(total);
   $('#entryCount').textContent = String(month.length);
 
-  const byCat = month.reduce((a,r)=>{ const k=r.category||'Uncategorized'; a[k]=(a[k]||0)+(r.cost||0); return a; },{});
-  const ul = $('#byCategory'); ul.innerHTML='';
-  Object.entries(byCat).sort((a,b)=>b[1]-a[1]).forEach(([k,v])=>{
-    const li = document.createElement('li');
-    li.className='badge';
-    li.textContent = `${k}: ${currency(v)}`;
-    ul.appendChild(li);
-  });
+  const byCat = month.reduce((a,r)=>{ const k=r.category||'Other'; a[k]=(a[k]||0)+(r.cost||0); return a; },{});
+  const wrap = $('#byCategory'); wrap.innerHTML='';
+  Object.entries(byCat)
+    .sort((a,b)=>b[1]-a[1])
+    .forEach(([k,v])=>{
+      const span = document.createElement('span');
+      span.className = `chip-cat chip-${catNameToClass(k)}`;
+      span.textContent = `${k}: ${currency(v)}`;
+      wrap.appendChild(span);
+    });
 }
 
 // Table
@@ -158,16 +170,22 @@ function renderTable(){
     const okText = !q || hay.includes(q);
     return okDate && okCat && okText;
   });
-  list.sort((a,b)=> (b.date||'').localeCompare(a.date||'') || b.createdAt-a.createdAt);
+  list.sort((a,b)=>(b.date||'').localeCompare(a.date||'') || b.createdAt-a.createdAt);
 
   let total = 0;
   const dict = i18n[getLang()] || i18n.en;
   list.forEach(r=>{
     total += (r.cost||0);
+    const catCls = catNameToClass(r.category||'Other');
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td>${r.date||''}</td>
-      <td><span class="tag">${r.category||''}</span></td>
+      <td>
+        <span class="chip-cat chip-${catCls}">
+          <span class="dot ${catCls}"></span>
+          ${r.category||''}
+        </span>
+      </td>
       <td>${r.plot||''}</td>
       <td><strong>${r.activity||''}</strong>${r.material? ' / '+r.material:''}</td>
       <td>${r.quantity||''}</td>
@@ -177,7 +195,7 @@ function renderTable(){
       <td>${r.cost? currency(r.cost):''}</td>
       <td>${r.notes||''}</td>
       <td class="row-actions">
-        <button class="btn small outline" data-action="edit" data-id="${r.id}">${dict.edit_entry}</button>
+        <button class="btn small secondary" data-action="edit" data-id="${r.id}">${dict.edit_entry}</button>
         <button class="btn small danger" data-action="del" data-id="${r.id}">DEL</button>
       </td>`;
     tbody.appendChild(tr);
@@ -188,7 +206,7 @@ function renderTable(){
   tbody.querySelectorAll('button').forEach(btn=>{
     btn.addEventListener('click', ()=>{
       const id = btn.dataset.id;
-      const list = loadRecords();
+      let list = loadRecords();
       const idx = list.findIndex(r=>r.id===id); if (idx<0) return;
       if (btn.dataset.action==='edit'){
         const r = list[idx];
@@ -216,3 +234,75 @@ function toCSV(records){
   return lines.join('\n');
 }
 function download(filename, content, type='text/plain'){
+  const blob = new Blob([content], {type}); const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href=url; a.download=filename; a.click(); URL.revokeObjectURL(url);
+}
+$('#exportCsvBtn').addEventListener('click', ()=> download(`farm-records-${new Date().toISOString().slice(0,10)}.csv`, toCSV(loadRecords()), 'text/csv'));
+$('#exportJsonBtn').addEventListener('click', ()=> download(`farm-records-backup-${new Date().toISOString().slice(0,10)}.json`, JSON.stringify(loadRecords(),null,2), 'application/json'));
+$('#importJsonInput').addEventListener('change', async (e)=>{
+  const file = e.target.files?.[0]; if (!file) return;
+  const text = await file.text();
+  try{
+    const data = JSON.parse(text);
+    if (!Array.isArray(data)) throw new Error('Invalid backup file');
+    const current = loadRecords();
+    const map = new Map(current.map(r=>[r.id, r]));
+    data.forEach(r=>{
+      const nid = r.id || (crypto.randomUUID? crypto.randomUUID(): String(Date.now()+Math.random()));
+      map.set(nid, { ...map.get(r.id), ...r, id:nid });
+    });
+    saveRecords(Array.from(map.values()));
+    alert((i18n[getLang()]||i18n.en).restore_complete);
+    renderDashboard(); renderTable();
+  }catch(err){
+    alert((i18n[getLang()]||i18n.en).restore_failed + err.message);
+  }finally{ e.target.value=''; }
+});
+
+// Settings
+function renderSettings(){
+  const s = loadSettings();
+  $('#settingsPlots').value = (s.plots||[]).join(', ');
+  $('#settingsWage').value = s.wagePerHour || '';
+  $('#settingsCurrency').value = s.currency || '₹';
+
+  // datalist
+  const dl = $('#plotsList'); dl.innerHTML='';
+  (s.plots||[]).forEach(p=>{ const o=document.createElement('option'); o.value=p; dl.appendChild(o); });
+
+  // templates
+  const tsel = $('#templateSelect'); tsel.innerHTML='';
+  (s.templates||[]).forEach((t,i)=>{ const o=document.createElement('option'); o.value=String(i); o.textContent=t.name; tsel.appendChild(o); });
+}
+$('#saveSettingsBtn').addEventListener('click', ()=>{
+  const plots = $('#settingsPlots').value.split(',').map(s=>s.trim()).filter(Boolean);
+  const wage  = Number($('#settingsWage').value||0);
+  const cur   = ($('#settingsCurrency').value||'₹').trim().slice(0,3);
+  const s = loadSettings(); s.plots=plots; s.wagePerHour=wage; s.currency=cur; saveSettings(s);
+  renderSettings(); applyI18n(); alert('Saved');
+});
+$('#applyTemplateBtn').addEventListener('click', ()=>{
+  const s = loadSettings(); const idx = Number($('#templateSelect').value||0);
+  const t = (s.templates||[])[idx]; if (!t) return;
+  fields.category.value=t.category||''; fields.activity.value=t.activity||''; fields.material.value=t.material||'';
+  fields.quantity.value=t.quantity||''; fields.unit.value=t.unit||''; fields.laborers.value=t.laborers||'';
+  fields.hours.value=t.hours||''; fields.cost.value=t.cost||'';
+  autoCostHint();
+});
+
+// Small style helpers
+const style = document.createElement('style');
+style.textContent = `
+.badge{display:inline-block;margin:4px 6px 0 0;padding:6px 10px;border-radius:999px;background:#07142a;border:1px solid #213159;color:#cfe0ff}
+.tag{display:inline-block;padding:3px 8px;border-radius:999px;background:#15234a;border:1px solid #2a3b66}
+`;
+document.head.appendChild(style);
+
+// Init
+(function init(){
+  if (!localStorage.getItem(SETTINGS_KEY)) saveSettings(DEFAULT_SETTINGS);
+  applyI18n();
+  renderSettings();
+  renderDashboard();
+  renderTable();
+})();
