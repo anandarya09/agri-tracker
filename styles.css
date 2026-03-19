@@ -14,7 +14,7 @@ body{
   background: radial-gradient(1200px 800px at 10% -20%, #1a2452 0%, transparent 50%),
               radial-gradient(1000px 700px at 110% 10%, #1a3d5c 0%, transparent 55%),
               linear-gradient(180deg,var(--bg-1),var(--bg-2));
-  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, "Noto Sans Kannada","Noto Sans Tamil", sans-serif;
+  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, "Noto Sans Tamil","Noto Sans Kannada", sans-serif;
 }
 
 /* Header */
@@ -43,8 +43,8 @@ body{
 .btn.secondary{ background:#233055; color:#e9f2ff; }
 .btn.outline{ background:transparent; color:#9bd7ff; border:1px solid #2a3b66; }
 .btn.small{ padding:8px 10px; border-radius:10px; font-weight:800; }
-
 .link-btn{ background:transparent; border:none; color:#9bd7ff; cursor:pointer; font-weight:700; }
+
 .crumbs{ display:flex; align-items:center; gap:8px; margin-bottom:10px;}
 .crumb-strong{ font-weight:900; }
 .sep{ opacity:.5; }
