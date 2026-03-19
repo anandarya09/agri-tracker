@@ -1,6 +1,6 @@
 /***** Keys & storage *****/
-const LS_KEY = 'farm_records_v4';          // bumped for new schema
-const SETTINGS_KEY = 'farm_settings_v3';    // bumped for new settings
+const LS_KEY = 'farm_records_v5';          // bumped for new schema
+const SETTINGS_KEY = 'farm_settings_v4';    // bumped for new settings
 const LANG_KEY = 'farm_lang_v1';
 
 const $  = (s)=>document.querySelector(s);
@@ -22,14 +22,14 @@ const DEFAULT_CATEGORIES = [
 const DEFAULT_SETTINGS = {
   fields: [...DEFAULT_FIELDS],
   categories: [...DEFAULT_CATEGORIES],
-  rateNormal: 500,    // ₹ per person
-  rateSpecial: 700,   // ₹ per person
+  rateNormal: 500,    // ₹/person
+  rateSpecial: 700,   // ₹/person
   currency: '₹',
 };
 
 /***** State *****/
 const App = {
-  mode: 'home',           // home | fieldView | categoryView | globalDash | recordsAll | settings
+  mode: 'homeTiles',       // homeTiles | fieldView | categoryView | globalDash | recordsAll | settings
   selectedField: null,
   selectedCategory: null,
 };
@@ -44,30 +44,92 @@ function saveRecords(r){ localStorage.setItem(LS_KEY, JSON.stringify(r)); }
 function currency(n){ const s=loadSettings(); const v=Number(n||0); return (s.currency||'₹') + v.toFixed(2); }
 function todayISO(){ const d=new Date(); const z=d.getTimezoneOffset()*60000; return new Date(d-z).toISOString().slice(0,10); }
 function sumCost(list){ return list.reduce((s,r)=> s + (Number(r.cost)||0), 0); }
-function isThisMonth(dateStr){ if (!dateStr) return false; const ym = new Date().toISOString().slice(0,7); return dateStr.startsWith(ym); }
+function isThisMonth(dateStr){ if (!dateStr) return false; const ym=new Date().toISOString().slice(0,7); return dateStr.startsWith(ym); }
 function inRange(d,f,t){ if (f && d<f) return false; if (t && d>t) return false; return true; }
-function shade(hex, amt){ let c=hex.replace('#',''); if (c.length===3) c=c.split('').map(x=>x+x).join(''); const num=parseInt(c,16); let r=(num>>16)+amt,g=((num>>8)&0x00FF)+amt,b=(num&0x0000FF)+amt; r=Math.max(Math.min(255,r),0); g=Math.max(Math.min(255,g),0); b=Math.max(Math.min(255,b),0); return '#'+(b| (g<<8) | (r<<16)).toString(16).padStart(6,'0'); }
+function shade(hex, amt){ let c=hex.replace('#',''); if(c.length===3) c=c.split('').map(x=>x+x).join(''); const num=parseInt(c,16); let r=(num>>16)+amt,g=((num>>8)&0x00FF)+amt,b=(num&0x0000FF)+amt; r=Math.max(Math.min(255,r),0); g=Math.max(Math.min(255,g),0); b=Math.max(Math.min(255,b),0); return '#'+(b| (g<<8) | (r<<16)).toString(16).padStart(6,'0'); }
 function slug(s){ return (s||'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,''); }
-function switchTab(id){ $$('.tab').forEach(t=>t.classList.remove('active')); $('#'+id).classList.add('active'); $$('.tab-btn').forEach(b=>b.classList.remove('active')); const btn=Array.from($$('.tab-btn')).find(b=>b.dataset.tab===id); if (btn) btn.classList.add('active'); }
-function setSubtab(id){ $$('.subtab').forEach(t=>t.classList.remove('active')); $('#'+id).classList.add('active'); $$('.subtab-btn').forEach(b=>b.classList.remove('active')); const btn=Array.from($$('.subtab-btn')).find(b=>b.dataset.subtab===id); if (btn) btn.classList.add('active'); }
+function switchTab(id){ $$('.tab').forEach(t=>t.classList.remove('active')); $('#'+id).classList.add('active'); $$('.tab-btn').forEach(b=>b.classList.remove('active')); const btn=Array.from($$('.tab-btn')).find(b=>b.dataset.tab===id); if(btn) btn.classList.add('active'); App.mode=id; }
+function setSubtab(id){ $$('.subtab').forEach(t=>t.classList.remove('active')); $('#'+id).classList.add('active'); $$('.subtab-btn').forEach(b=>b.classList.remove('active')); const btn=Array.from($$('.subtab-btn')).find(b=>b.dataset.subtab===id); if(btn) btn.classList.add('active'); }
 
-/***** i18n (placeholders only) *****/
-const i18n = {
-  en:{ confirm_delete:'Delete this entry?', restore_complete:'Restore complete!', restore_failed:'Failed to restore: ' },
-  kn:{ confirm_delete:'ಈ ದಾಖಲೆಯನ್ನು ಅಳಿಸಬೇಕೇ?', restore_complete:'ಮರುಸ್ಥಾಪನೆ ಪೂರ್ಣಗೊಂಡಿದೆ!', restore_failed:'ಮರುಸ್ಥಾಪನೆ ವಿಫಲವಾಗಿದೆ: ' },
-  ta:{ confirm_delete:'இந்த பதிவை நீக்கவா?', restore_complete:'மீட்டெடுத்தல் முடிந்தது!', restore_failed:'மீட்டெடுக்க முடியவில்லை: ' }
+/***** i18n (Tamil-focused) *****/
+const I18N = {
+  en: {
+    home:'Home', global_dashboard:'Global Dashboard', all_records:'All Records', settings:'Settings',
+    fields_areas:'Fields / Areas', fields_tip:'Tip: Add/rename in Settings → Fields.',
+    back_to_fields:'← Back to Fields', back_to_categories:'← Back to Categories',
+    categories_in:'Categories in',
+    dashboard:'Dashboard', add_entry:'Add Entry', records:'Records',
+    total_cost_month:'Total Cost (This Month)', entries_month:'Entries (This Month)', avg_per_entry:'Average Cost / Entry',
+    export_csv:'Export CSV', backup_json:'Backup (JSON)', restore:'Restore', download_png:'Download Report (PNG)',
+    date:'Date', category:'Category', field:'Field', material:'Material', material_only:'Material', quantity:'Quantity', qty_short:'Qty',
+    normal_lab:'Normal Labourers (count)', special_lab:'Special Labourers (count)', normal_short:'Normal', special_short:'Special',
+    cost:'Cost', notes:'Notes', save:'Save', reset:'Reset', from:'From', to:'To', search:'Search', total:'Total',
+    top_category:'Top Category', by_category_month:'By Category (This Month)', footer_note:'For your farm • Local-only data',
+    add_field:'Add Field', categories:'Categories', add_category:'Add Category', general:'General',
+    rate_normal:'Normal Labourer Rate (₹ / person)', rate_special:'Special Labourer Rate (₹ / person)', currency_symbol:'Currency Symbol',
+    calc_hint:'Cost = Normal × Normal Rate + Special × Special Rate (editable).',
+    // dialogs
+    confirm_delete:'Delete this entry?', restore_complete:'Restore complete!', restore_failed:'Restore failed: ',
+    // canvas
+    report_title:'EverGreen Farm — Report',
+    canvas_total:'Total (This Month)', canvas_entries:'Entries (This Month)', canvas_avg:'Avg / Entry', canvas_by_cat:'By Category (This Month)', canvas_recent:'Recent Entries'
+  },
+  ta: {
+    home:'முகப்பு', global_dashboard:'முழுமை டாஷ்போர்டு', all_records:'அனைத்து பதிவுகள்', settings:'அமைப்புகள்',
+    fields_areas:'புலங்கள் / பகுதிகள்', fields_tip:'குறிப்பு: அமைப்புகள் → புலங்கள் பகுதியில் சேர்க்க/பெயர் மாற்றலாம்.',
+    back_to_fields:'← புலங்களுக்கு திரும்ப', back_to_categories:'← பகுப்புகளுக்கு திரும்ப',
+    categories_in:'பகுப்புகள்:',
+    dashboard:'டாஷ்போர்டு', add_entry:'பதிவு சேர்', records:'பதிவுகள்',
+    total_cost_month:'இந்த மாதம் — மொத்த செலவு', entries_month:'இந்த மாதம் — பதிவுகள்', avg_per_entry:'ஒரு பதிவுக்கான சராசரி',
+    export_csv:'CSV ஏற்றுமதி', backup_json:'காப்பு (JSON)', restore:'மீட்டெடு', download_png:'அறிக்கை (PNG) பதிவிறக்கு',
+    date:'தேதி', category:'பகுப்பு', field:'புலம்', material:'பொருள் (இருந்தால்)', material_only:'பொருள்', quantity:'அளவு', qty_short:'அள.',
+    normal_lab:'சாதாரண தொழிலாளர்கள் (எண்)', special_lab:'சிறப்பு தொழிலாளர்கள் (எண்)', normal_short:'சா. தொழி.', special_short:'சிற. தொழி.',
+    cost:'செலவு', notes:'குறிப்புகள்', save:'சேமிக்க', reset:'ரீசெட்', from:'இருந்து', to:'வரை', search:'தேடல்', total:'மொத்தம்',
+    top_category:'அதிகமாக செலவான பகுப்பு', by_category_month:'இந்த மாதம் — பகுப்புகளின் படி', footer_note:'உங்கள் பண்ணைக்கு • உள்ளூர் தரவு',
+    add_field:'புதிய புலம்', categories:'பகுப்புகள்', add_category:'புதிய பகுப்பு', general:'பொது',
+    rate_normal:'சாதாரண தொழிலாளர் காசு (₹ / பேர்)', rate_special:'சிறப்பு தொழிலாளர் காசு (₹ / பேர்)', currency_symbol:'நாணய குறி',
+    calc_hint:'செலவு = சாதாரண × சாதாரண காசு + சிறப்பு × சிறப்பு காசு (கையால் மாற்றலாம்).',
+    // dialogs
+    confirm_delete:'இந்த பதிவை நீக்கவா?', restore_complete:'மீட்டெடுத்தல் முடிந்தது!', restore_failed:'மீட்டெடுக்க முடியவில்லை: ',
+    // canvas
+    report_title:'EverGreen Farm — அறிக்கை',
+    canvas_total:'இந்த மாதம் — மொத்த செலவு', canvas_entries:'இந்த மாதம் — பதிவுகள்', canvas_avg:'ஒரு பதிவுக்கான சராசரி', canvas_by_cat:'இந்த மாதம் — பகுப்புகள்', canvas_recent:'சமீபத்திய பதிவுகள்'
+  },
+  kn: { // (kept minimal for now)
+    home:'ಮುಖಪುಟ', global_dashboard:'ಸಾರ್ವತ್ರಿಕ ಫಲಕ', all_records:'ಎಲ್ಲ ದಾಖಲೆಗಳು', settings:'ಸಂಯೋಜನೆಗಳು',
+    fields_areas:'ಪ್ಲಾಟ್‌ಗಳು / ಪ್ರದೇಶಗಳು', fields_tip:'ಸೂಚನೆ: ಸೆಟ್ಟಿಂಗ್‌ಗಳಲ್ಲಿ ಪ್ಲಾಟ್‌ಗಳನ್ನು ಸೇರಿಸಬಹುದು/ಹೆಸರಿಸಬಹುದು.',
+    back_to_fields:'← ಪ್ಲಾಟ್‌ಗಳಿಗೆ ಹಿಂದಿರುಗಿ', back_to_categories:'← ವರ್ಗಗಳಿಗೆ ಹಿಂದಿರುಗಿ',
+    categories_in:'ವರ್ಗಗಳು:',
+    dashboard:'ಡ್ಯಾಶ್‌ಬೋರ್ಡ್', add_entry:'ದಾಖಲಿಸಿ', records:'ದಾಖಲೆಗಳು',
+    total_cost_month:'ಈ ತಿಂಗಳು — ಒಟ್ಟು ವೆಚ್ಚ', entries_month:'ಈ ತಿಂಗಳು — ಎಂಟ್ರಿಗಳು', avg_per_entry:'ಒಂದು ಎಂಟ್ರಿಗೆ ಸರಾಸರಿ',
+    export_csv:'CSV ಎಕ್ಸ್ಪೋರ್ಟ್', backup_json:'ಬ್ಯಾಕಪ್ (JSON)', restore:'ಮರುಸ್ಥಾಪನೆ', download_png:'ವರದಿ (PNG) ಡೌನ್‌ಲೋಡ್',
+    date:'ದಿನಾಂಕ', category:'ವರ್ಗ', field:'ಪ್ಲಾಟ್', material:'ಸಾಮಗ್ರಿ', material_only:'ಸಾಮಗ್ರಿ', quantity:'ಪ್ರಮಾಣ', qty_short:'ಪ್ರಮಾ.',
+    normal_lab:'ಸಾಮಾನ್ಯ ಕಾರ್ಮಿಕರು (ಸಂಖ್ಯೆ)', special_lab:'ವಿಶೇಷ ಕಾರ್ಮಿಕರು (ಸಂಖ್ಯೆ)', normal_short:'ಸಾ. ಕಾರ್.', special_short:'ವಿ. ಕಾರ್.',
+    cost:'ವೆಚ್ಚ', notes:'ಟಿಪ್ಪಣಿಗಳು', save:'ಉಳಿಸಿ', reset:'ರೀಸೆಟ್', from:'ಇಂದಿನಿಂದ', to:'ತನಕ', search:'ಹುಡುಕಿ', total:'ಒಟ್ಟು',
+    top_category:'ಅತಿ ಹೆಚ್ಚು ವೆಚ್ಚದ ವರ್ಗ', by_category_month:'ಈ ತಿಂಗಳು — ವರ್ಗವಾರು', footer_note:'ನಿಮ್ಮ ತೋಟಕ್ಕೆ • ಸ್ಥಳೀಯ ಡೇಟಾ',
+    add_field:'ಹೊಸ ಪ್ಲಾಟ್', categories:'ವರ್ಗಗಳು', add_category:'ಹೊಸ ವರ್ಗ', general:'ಸಾಮಾನ್ಯ',
+    rate_normal:'ಸಾಮಾನ್ಯ ಕಾರ್ಮಿಕರ ದರ (₹ / ವ್ಯಕ್ತಿ)', rate_special:'ವಿಶೇಷ ಕಾರ್ಮಿಕರ ದರ (₹ / ವ್ಯಕ್ತಿ)', currency_symbol:'ಕರೆನ್ಸಿ ಚಿಹ್ನೆ',
+    calc_hint:'ವೆಚ್ಚ = ಸಾಮಾನ್ಯ × ದರ + ವಿಶೇಷ × ದರ (ಬदलಾಯಿಸಬಹುದು).',
+    confirm_delete:'ಈ ದಾಖಲೆಯನ್ನು ಅಳಿಸಬೇಕೆ?', restore_complete:'ಮರುಸ್ಥಾಪನೆ ಪೂರ್ಣ', restore_failed:'ಮರುಸ್ಥಾಪನೆ ವಿಫಲ: ',
+    report_title:'EverGreen Farm — ವರದಿ',
+    canvas_total:'ಈ ತಿಂಗಳು — ಒಟ್ಟು ವೆಚ್ಚ', canvas_entries:'ಈ ತಿಂಗಳು — ಎಂಟ್ರಿಗಳು', canvas_avg:'ಸರಾಸರಿ/ಎಂಟ್ರಿ', canvas_by_cat:'ಈ ತಿಂಗಳು — ವರ್ಗಗಳು', canvas_recent:'ಇತ್ತೀಚಿನ ದಾಖಲೆಗಳು'
+  }
 };
-function getLang(){ return localStorage.getItem(LANG_KEY)||'en'; }
+function getLang(){ return localStorage.getItem(LANG_KEY) || 'ta'; }
 function setLang(l){ localStorage.setItem(LANG_KEY, l); }
+function t(k){ const lang=getLang(); return (I18N[lang] && I18N[lang][k]) || I18N.en[k] || k; }
 function applyI18n(){
-  const lang=getLang();
-  $('#material')?.setAttribute('placeholder', lang==='kn'?'ಯೂರಿಯಾ / ನೀಮ್ / ಸ್ಪೇರ್': lang==='ta'?'யூரியா / நீம் / ஸ்பேர்':'Urea / Neem oil / Spare');
+  $$('[data-i18n]').forEach(el => { const key = el.getAttribute('data-i18n'); const txt = t(key); if (txt) el.textContent = txt; });
+  // placeholders
+  $('#material')?.setAttribute('placeholder', getLang()==='ta' ? 'யூரியா / நீம் எண்ணெய் / ஸ்பேர்' : (getLang()==='kn' ? 'ಯೂರಿಯಾ / ನೀಂ ಎಣ್ಣೆ / ಸ್ಪೇರ್' : 'Urea / Neem oil / Spare'));
+  $('#aQ')?.setAttribute('placeholder', getLang()==='ta' ? 'பொருள், குறிப்புகள்' : (getLang()==='kn' ? 'ಸಾಮಗ್ರಿ, ಟಿಪ್ಪಣಿಗಳು' : 'material, notes'));
+  $('#filterSearch')?.setAttribute('placeholder', getLang()==='ta' ? 'பொருள், குறிப்புகள்' : (getLang()==='kn' ? 'ಸಾಮಗ್ರಿ, ಟಿಪ್ಪಣಿಗಳು' : 'material, notes'));
 }
 
 /***** Navigation *****/
 $$('.tab-btn').forEach(b=>{
   b.addEventListener('click', ()=>{
-    switchTab(b.dataset.tab); App.mode=b.dataset.tab;
+    switchTab(b.dataset.tab);
     if (App.mode==='homeTiles') renderHome();
     if (App.mode==='globalDash') renderGlobalDash();
     if (App.mode==='recordsAll') renderAllRecords();
@@ -90,7 +152,7 @@ function renderHome(){
     const total = sumCost(monthRecs), cnt = monthRecs.length;
     const div=document.createElement('div'); div.className='tile';
     div.innerHTML = `<div class="t-name">${field}</div>
-      <div class="t-sub">${currency(total)} · ${cnt} entries</div>
+      <div class="t-sub">${currency(total)} · ${cnt} ${getLang()==='ta'?'பதிவுகள்':(getLang()==='kn'?'ಎಂಟ್ರಿಗಳು':'entries')}</div>
       <div class="t-icon">🏷️</div>`;
     div.addEventListener('click', ()=> openField(field));
     wrap.appendChild(div);
@@ -124,7 +186,7 @@ function openCategory(field, category){
   $('#crumbField2').textContent = field;
   $('#crumbCategory').textContent = category;
 
-  // Pre-fill Add form (only allowed inputs)
+  // Pre-fill Add form
   F.id.value='';
   $('#category').value = category;
   $('#date').value = todayISO();
@@ -165,10 +227,8 @@ const F = {
   notes: $('#notes'),
 };
 $('#resetBtn').addEventListener('click', ()=>{
-  F.id.value=''; F.date.value=todayISO();
-  F.material.value=''; F.quantity.value='';
-  F.normalLab.value=''; F.specialLab.value='';
-  F.cost.value=''; F.notes.value=''; $('#autoCostHint').textContent='';
+  F.id.value=''; F.date.value=todayISO(); F.material.value=''; F.quantity.value='';
+  F.normalLab.value=''; F.specialLab.value=''; F.cost.value=''; F.notes.value=''; $('#autoCostHint').textContent='';
 });
 
 ['input','change'].forEach(ev=>{
@@ -180,7 +240,7 @@ function autoCostFromCounts(){
   const n = Number(F.normalLab.value||0);
   const sp = Number(F.specialLab.value||0);
   const calc = n*(s.rateNormal||0) + sp*(s.rateSpecial||0);
-  const hint = `Cost = Normal(${n})×₹${s.rateNormal||0} + Special(${sp})×₹${s.rateSpecial||0} = ${currency(calc)}`;
+  const hint = `${t('cost')} = ${t('normal_short')}(${n})×${s.currency}${s.rateNormal||0} + ${t('special_short')}(${sp})×${s.currency}${s.rateSpecial||0} = ${currency(calc)}`;
   $('#autoCostHint').textContent = hint;
   if (!F.cost.value) F.cost.value = calc.toFixed(2);
 }
@@ -190,29 +250,25 @@ $('#entryForm').addEventListener('submit', (e)=>{
   const rec = {
     id: F.id.value || (crypto.randomUUID ? crypto.randomUUID() : String(Date.now())),
     date: F.date.value,
-    field: App.selectedField,          // from context
-    plot: App.selectedField,           // compatibility
+    field: App.selectedField, plot: App.selectedField, // compatibility
     category: F.category.value,
-    activity: '',                      // removed from UI
+    activity: '', // removed
     material: F.material.value.trim(),
     quantity: parseFloat(F.quantity.value||0),
-    unit: '',                          // removed from UI
-    laborers: parseInt((Number(F.normalLab.value||0) + Number(F.specialLab.value||0)) || 0), // total for compatibility
+    unit: '',
+    laborers: parseInt((Number(F.normalLab.value||0) + Number(F.specialLab.value||0)) || 0), // compatibility total
     normalLab: parseInt(F.normalLab.value||0),
     specialLab: parseInt(F.specialLab.value||0),
-    hours: 0,                          // no hours
+    hours: 0,
     cost: parseFloat(F.cost.value||0),
     notes: F.notes.value.trim(),
     createdAt: Date.now(),
   };
-  if (!rec.date || !rec.field || !rec.category){ alert('Date, Field and Category are required'); return; }
-  const list = loadRecords();
-  const idx = list.findIndex(r=>r.id===rec.id);
-  if (idx>=0) list[idx]=rec; else list.push(rec);
+  if (!rec.date || !rec.field || !rec.category){ alert(t('date')+' / '+t('field')+' / '+t('category')+' ?'); return; }
+  const list=loadRecords(); const idx=list.findIndex(r=>r.id===rec.id); if(idx>=0) list[idx]=rec; else list.push(rec);
   saveRecords(list);
   renderCategoryDash(); renderTable();
-  $('#resetBtn').click();
-  setSubtab('catRecords');
+  $('#resetBtn').click(); setSubtab('catRecords');
 });
 
 /***** CATEGORY TABLE *****/
@@ -221,7 +277,7 @@ const filter = { from: $('#filterFrom'), to: $('#filterTo'), search: $('#filterS
 
 function renderTable(){
   const tbody = $('#recordsTable tbody'); tbody.innerHTML='';
-  let list = contextRecords(true); // field+category
+  let list = contextRecords(true);
   list = list.filter(r=>{
     const okDate = inRange(r.date||'', filter.from.value||'', filter.to.value||'');
     const q=(filter.search.value||'').toLowerCase(); const hay=[r.material,r.notes].join(' ').toLowerCase();
@@ -244,8 +300,8 @@ function renderTable(){
       <td>${r.cost!=null ? currency(r.cost): ''}</td>
       <td>${r.notes||''}</td>
       <td class="row-actions">
-        editEdit</button>
-        delDEL</button>
+        <button class="secondary small" data-action="edit" data-id="${r.id}">${getLang()==='ta'?'திருத்து':(getLang()==='kn'?'ತಿದ್ದು':'Edit')}</button>
+        <button class="danger small" data-action="del" data-id="${r.id}">${getLang()==='ta'?'நீக்கு':(getLang()==='kn'?'ಅಳಿಸು':'DEL')}</button>
       </td>`;
     tbody.appendChild(tr);
   });
@@ -262,10 +318,10 @@ function renderTable(){
         F.normalLab.value = (r.normalLab!=null)? r.normalLab : (r.laborers||0);
         F.specialLab.value = (r.specialLab!=null)? r.specialLab : 0;
         F.cost.value=r.cost||''; F.notes.value=r.notes||'';
-        $('#autoCostHint').textContent=''; $('#saveBtn').textContent='Update';
+        $('#autoCostHint').textContent=''; $('#saveBtn').textContent=t('save');
         setSubtab('catAdd');
       } else if (btn.dataset.action==='del'){
-        if (confirm((i18n[getLang()]||i18n.en).confirm_delete)){
+        if (confirm(t('confirm_delete'))){
           list.splice(idx,1); saveRecords(list); renderCategoryDash(); renderTable();
         }
       }
@@ -294,15 +350,15 @@ function renderGlobalDash(){
 /***** ALL RECORDS *****/
 function renderAllRecords(){
   const s=loadSettings(); const selCat=$('#aCat'), selField=$('#aField');
-  selCat.innerHTML = `<option value="">All</option>${s.categories.map(c=>`<option>${c.name}</option>`).join('')}`;
-  selField.innerHTML = `<option value="">All</option>${s.fields.map(f=>`<option>${f}</option>`).join('')}`;
-  const f=$('#aFrom'), t=$('#aTo'), c=$('#aCat'), fld=$('#aField'), q=$('#aQ');
-  [f,t,c,fld,q].forEach(el=> el.addEventListener('input', renderAllRecords));
+  selCat.innerHTML = `<option value="">${getLang()==='ta'?'அனைத்தும்':(getLang()==='kn'?'ಎಲ್ಲ':'All')}</option>${s.categories.map(c=>`<option>${c.name}</option>`).join('')}`;
+  selField.innerHTML = `<option value="">${getLang()==='ta'?'அனைத்தும்':(getLang()==='kn'?'ಎಲ್ಲ':'All')}</option>${s.fields.map(f=>`<option>${f}</option>`).join('')}`;
+  const f=$('#aFrom'), t2=$('#aTo'), c=$('#aCat'), fld=$('#aField'), q=$('#aQ');
+  [f,t2,c,fld,q].forEach(el=> el.addEventListener('input', renderAllRecords));
 
   const tbody=$('#allTable tbody'); tbody.innerHTML='';
   let list=loadRecords();
   list=list.filter(r=>{
-    const okDate=inRange(r.date||'', f.value||'', t.value||'');
+    const okDate=inRange(r.date||'', f.value||'', t2.value||'');
     const okCat=!c.value || r.category===c.value;
     const okField=!fld.value || (r.field||r.plot)===fld.value;
     const text=(q.value||'').toLowerCase(); const hay=[r.material,r.notes,(r.field||r.plot),r.category].join(' ').toLowerCase();
@@ -326,14 +382,15 @@ function renderAllRecords(){
 
 /***** SETTINGS *****/
 function renderSettingsPage(){
-  const s=loadSettings();
+  const s=loadSettings(); applyI18n();
+
   // fields
   const ul=$('#fieldsList'); ul.innerHTML='';
   s.fields.forEach((name,idx)=>{
     const li=document.createElement('li'); li.innerHTML=`
-      <span class="badge">Field</span>
+      <span class="badge">${t('field')}</span>
       <input type="text" value="${name}" data-idx="${idx}" class="fName"/>
-      delDelete</button>`;
+      <button class="danger small" data-action="del" data-idx="${idx}">${getLang()==='ta'?'நீக்கு':(getLang()==='kn'?'ಅಳಿಸು':'Delete')}</button>`;
     ul.appendChild(li);
   });
   ul.querySelectorAll('.fName').forEach(inp=> inp.addEventListener('input',()=>{ const i=+inp.dataset.idx; s.fields[i]=inp.value||`Field ${i+1}`; saveSettings(s); renderHome(); }));
@@ -343,11 +400,11 @@ function renderSettingsPage(){
   const cl=$('#catsList'); cl.innerHTML='';
   s.categories.forEach((c,idx)=>{
     const li=document.createElement('li'); li.innerHTML=`
-      <span class="badge">Category</span>
+      <span class="badge">${t('category')}</span>
       <input type="text" value="${c.name}" class="cName" data-idx="${idx}" />
       <input type="text" value="${c.icon}" class="cIcon" data-idx="${idx}" style="width:80px"/>
       <input type="color" value="${c.color}" class="cColor" data-idx="${idx}" />
-      cdelDelete</button>`;
+      <button class="danger small" data-action="cdel" data-idx="${idx}">${getLang()==='ta'?'நீக்கு':(getLang()==='kn'?'ಅಳಿಸು':'Delete')}</button>`;
     cl.appendChild(li);
   });
   cl.querySelectorAll('.cName').forEach(inp=> inp.addEventListener('input',()=>{ const i=+inp.dataset.idx; s.categories[i].name=inp.value||'Unnamed'; saveSettings(s); renderFieldCategories(); renderGlobalDash(); }));
@@ -360,6 +417,7 @@ function renderSettingsPage(){
   $('#rateSpecial').value = s.rateSpecial || 0;
   $('#settingsCurrency').value = s.currency || '₹';
 }
+
 $('#addFieldBtn').addEventListener('click', ()=>{
   const s=loadSettings(); const v=($('#newFieldName').value||'').trim(); if (!v) return;
   s.fields.push(v); saveSettings(s); $('#newFieldName').value=''; renderSettingsPage(); renderHome();
@@ -374,10 +432,10 @@ $('#saveSettingsBtn').addEventListener('click', ()=>{
   s.rateNormal = Number($('#rateNormal').value||0);
   s.rateSpecial = Number($('#rateSpecial').value||0);
   s.currency = ($('#settingsCurrency').value||'₹').trim().slice(0,3);
-  saveSettings(s); alert('Saved');
+  saveSettings(s); alert(getLang()==='ta'?'சேமிக்கப்பட்டது':(getLang()==='kn'?'ಉಳಿಸಲಾಗಿದೆ':'Saved'));
 });
 
-/***** CSV / JSON / PNG *****/
+/***** CSV / JSON *****/
 function toCSV(records){
   const cols=['date','field','category','material','quantity','normalLab','specialLab','cost','notes'];
   const esc=v=>{ if(v==null) return ''; const s=String(v).replace(/"/g,'""'); return `"${s}"`; };
@@ -394,9 +452,9 @@ $('#importJsonInput').addEventListener('change', async (e)=>{
     const current=loadRecords(); const map=new Map(current.map(r=>[r.id,r]));
     data.forEach(r=>{ const id=r.id||(crypto.randomUUID?crypto.randomUUID():String(Date.now()+Math.random())); map.set(id,{...map.get(r.id),...r,id}); });
     saveRecords(Array.from(map.values()));
-    alert((i18n[getLang()]||i18n.en).restore_complete);
+    alert(t('restore_complete'));
     renderHome(); renderGlobalDash(); if(App.mode==='categoryView'){ renderCategoryDash(); renderTable(); } if(App.mode==='recordsAll') renderAllRecords();
-  }catch(err){ alert((i18n[getLang()]||i18n.en).restore_failed + err.message); }
+  }catch(err){ alert(t('restore_failed') + err.message); }
   finally{ e.target.value=''; }
 });
 
@@ -406,43 +464,43 @@ $('#downloadPngBtn').addEventListener('click', ()=>{
   const ctxName=contextLabel(true);
   const W=1100,H=700; const c=document.createElement('canvas'); c.width=W; c.height=H; const g=c.getContext('2d');
   gradientBg(g,W,H);
-  g.fillStyle='#ecf2ff'; g.font='bold 28px system-ui, Segoe UI, Roboto, Arial'; g.fillText('EverGreen Farm — Report',32,48);
+  g.fillStyle='#ecf2ff'; g.font='bold 28px system-ui, Segoe UI, Roboto, Arial'; g.fillText(t('report_title'),32,48);
   g.font='16px system-ui'; g.fillStyle='#b9c6ea'; g.fillText(`${new Date().toLocaleString()}`,32,72);
   g.font='bold 22px system-ui'; g.fillStyle='#ecf2ff'; g.fillText(ctxName,32,110);
 
   const month=list.filter(r=>isThisMonth(r.date)); const total=sumCost(month), count=month.length;
-  drawCard(g,32,130,320,120,'#12323a','Total (This Month)', currency(total));
-  drawCard(g,372,130,220,120,'#10263b','Entries (This Month)', String(count));
-  drawCard(g,612,130,220,120,'#211539','Avg / Entry', currency(count?total/count:0));
+  drawCard(g,32,130,320,120,'#12323a', t('canvas_total'), currency(total));
+  drawCard(g,372,130,220,120,'#10263b', t('canvas_entries'), String(count));
+  drawCard(g,612,130,220,120,'#211539', t('canvas_avg'), currency(count?total/count:0));
 
   const byCat={}; month.forEach(r=> byCat[r.category]=(byCat[r.category]||0)+(r.cost||0));
-  drawBarChart(g, Object.keys(byCat), Object.values(byCat), 32, 270, W-64, 300, s);
+  drawBarChart(g, Object.keys(byCat), Object.values(byCat), 32, 270, W-64, 300, s, t('canvas_by_cat'));
 
   const recent=[...list].sort((a,b)=>(b.date||'').localeCompare(a.date||'')||b.createdAt-a.createdAt).slice(0,8);
-  drawMiniTable(g, recent, 32, 590, W-64, 90, s.currency);
+  drawMiniTable(g, recent, 32, 590, W-64, 90, s.currency, t('canvas_recent'));
 
   const png=c.toDataURL('image/png'); const a=document.createElement('a'); a.href=png; a.download=`report-${slug(ctxName)}-${new Date().toISOString().slice(0,10)}.png`; a.click();
 });
 function gradientBg(g,W,H){ const grd=g.createLinearGradient(0,0,0,H); grd.addColorStop(0,'#0b1022'); grd.addColorStop(1,'#121a36'); g.fillStyle=grd; g.fillRect(0,0,W,H); }
 function drawCard(g,x,y,w,h,color,title,val){ g.fillStyle=color; g.globalAlpha=.9; roundRect(g,x,y,w,h,12,true,false); g.globalAlpha=1; g.fillStyle='#cfe0ff'; g.font='bold 15px system-ui'; g.fillText(title,x+14,y+32); g.fillStyle='#ffffff'; g.font='bold 30px system-ui'; g.fillText(val,x+14,y+72); }
-function drawBarChart(g,labels,values,x,y,w,h,settings){ g.fillStyle='rgba(255,255,255,.06)'; roundRect(g,x,y,w,h,14,true,false); g.fillStyle='#cfe0ff'; g.font='bold 16px system-ui'; g.fillText('By Category (This Month)',x+14,y+26); const pad=50,bw=(w-2*pad)/Math.max(values.length,1),max=Math.max(...values,10); values.forEach((v,i)=>{ const bh=(h-2*pad)*v/max; const cat=settings.categories.find(c=>c.name===labels[i])||{color:'#7dd3fc'}; g.fillStyle=cat.color; g.fillRect(x+pad+i*bw+10, y+h-pad-bh, bw-20,bh); g.fillStyle='#a9b2c7'; g.font='12px system-ui'; g.fillText(labels[i]||'', x+pad+i*bw+10, y+h-pad+14); }); }
-function drawMiniTable(g,rows,x,y,w,h,curSym){ g.fillStyle='rgba(255,255,255,.06)'; roundRect(g,x,y,w,h,14,true,false); g.fillStyle='#cfe0ff'; g.font='bold 16px system-ui'; g.fillText('Recent Entries',x+14,y+24); g.font='12px system-ui'; g.fillStyle='#b9c6ea'; const cols=['Date','Field','Category','Material','Cost']; const cw=[100,140,120, w-100-140-120-100-24, 100]; let cx=x+12; cols.forEach((c,i)=>{ g.fillText(c,cx,y+44); cx+=cw[i]; }); let yy=y+62; rows.forEach(r=>{ g.fillStyle='#ecf2ff'; let px=x+12; g.fillText(r.date||'',px,yy); px+=cw[0]; g.fillText((r.field||r.plot)||'',px,yy); px+=cw[1]; g.fillText(r.category||'',px,yy); px+=cw[2]; g.fillText((r.material||''),px,yy); px+=cw[3]; g.fillText((r.cost!=null? curSym+(+r.cost).toFixed(2):''),px,yy); yy+=18; }); }
+function drawBarChart(g,labels,values,x,y,w,h,settings, titleTxt){ g.fillStyle='rgba(255,255,255,.06)'; roundRect(g,x,y,w,h,14,true,false); g.fillStyle='#cfe0ff'; g.font='bold 16px system-ui'; g.fillText(titleTxt, x+14, y+26); const pad=50,bw=(w-2*pad)/Math.max(values.length,1),max=Math.max(...values,10); values.forEach((v,i)=>{ const bh=(h-2*pad)*v/max; const cat=settings.categories.find(c=>c.name===labels[i])||{color:'#7dd3fc'}; g.fillStyle=cat.color; g.fillRect(x+pad+i*bw+10, y+h-pad-bh, bw-20,bh); g.fillStyle='#a9b2c7'; g.font='12px system-ui'; g.fillText(labels[i]||'', x+pad+i*bw+10, y+h-pad+14); }); }
+function drawMiniTable(g,rows,x,y,w,h,curSym,titleTxt){ g.fillStyle='rgba(255,255,255,.06)'; roundRect(g,x,y,w,h,14,true,false); g.fillStyle='#cfe0ff'; g.font='bold 16px system-ui'; g.fillText(titleTxt, x+14, y+24); g.font='12px system-ui'; g.fillStyle='#b9c6ea'; const cols=[t('date'),t('field'),t('category'),t('material_only'),t('cost')]; const cw=[100,140,120, w-100-140-120-100-24, 100]; let cx=x+12; cols.forEach((c,i)=>{ g.fillText(c,cx,y+44); cx+=cw[i]; }); let yy=y+62; rows.forEach(r=>{ g.fillStyle='#ecf2ff'; let px=x+12; g.fillText(r.date||'',px,yy); px+=cw[0]; g.fillText((r.field||r.plot)||'',px,yy); px+=cw[1]; g.fillText(r.category||'',px,yy); px+=cw[2]; g.fillText((r.material||''),px,yy); px+=cw[3]; g.fillText((r.cost!=null? curSym+(+r.cost).toFixed(2):''),px,yy); yy+=18; }); }
 function roundRect(g,x,y,w,h,r,fill,stroke){ g.beginPath(); g.moveTo(x+r,y); g.arcTo(x+w,y,x+w,y+h,r); g.arcTo(x+w,y+h,x,y+h,r); g.arcTo(x,y+h,x,y,r); g.arcTo(x,y,x+w,y,r); g.closePath(); if(fill) g.fill(); if(stroke) g.stroke(); }
 
-/***** Charts inside category/global cards *****/
+/***** Charts in page *****/
 function drawCategoryBar(list){
   const c=$('#catBar'); const g=c.getContext('2d'); g.clearRect(0,0,c.width,c.height);
   const map=new Map(); list.forEach(r=>{ if(r.date) map.set(r.date,(map.get(r.date)||0)+(r.cost||0)); });
   const labels=Array.from(map.keys()).sort(); const values=labels.map(k=>map.get(k));
   g.fillStyle='rgba(255,255,255,.06)'; g.fillRect(0,0,c.width,c.height);
-  g.fillStyle='#cfe0ff'; g.font='bold 14px system-ui'; g.fillText('Daily Cost (This Month)',12,22);
+  g.fillStyle='#cfe0ff'; g.font='bold 14px system-ui'; g.fillText(getLang()==='ta'?'இந்த மாதம் — நாள் வாரியான செலவு':(getLang()==='kn'?'ಈ ತಿಂಗಳು — ದಿನವಾರು ವೆಚ್ಚ':'Daily Cost (This Month)'),12,22);
   const pad=40,W=c.width,H=c.height,bw=(W-2*pad)/Math.max(values.length,1),max=Math.max(...values,10);
   values.forEach((v,i)=>{ const bh=(H-2*pad)*v/max; g.fillStyle='#7cc8ff'; g.fillRect(pad+i*bw+8, H-pad-bh, bw-16, bh); });
 }
 function drawGlobalBar(byCat, settings){
   const c=$('#gBar'); const g=c.getContext('2d'); g.clearRect(0,0,c.width,c.height);
   const labels=Object.keys(byCat); const values=labels.map(k=>byCat[k]); const pad=50,W=c.width,H=c.height,bw=(W-2*pad)/Math.max(values.length,1),max=Math.max(...values,10);
-  g.fillStyle='#cfe0ff'; g.font='bold 14px system-ui'; g.fillText('Category Cost (This Month)',12,22);
+  g.fillStyle='#cfe0ff'; g.font='bold 14px system-ui'; g.fillText(t('by_category_month'),12,22);
   values.forEach((v,i)=>{ const cat=settings.categories.find(c=>c.name===labels[i])||{color:'#7dd3fc'}; const bh=(H-2*pad)*v/max; g.fillStyle=cat.color; g.fillRect(pad+i*bw+10, H-pad-bh, bw-20, bh); g.fillStyle='#a9b2c7'; g.font='12px system-ui'; g.fillText(labels[i]||'', pad+i*bw+10, H-pad+14); });
 }
 
@@ -455,15 +513,16 @@ function contextRecords(strict=false){
 }
 function contextLabel(short=false){
   if (App.mode==='categoryView' && App.selectedField && App.selectedCategory) return short?`${App.selectedField}-${App.selectedCategory}`:`${App.selectedField} / ${App.selectedCategory}`;
-  if (App.mode==='fieldView' && App.selectedField) return short?App.selectedField:`Field: ${App.selectedField}`;
+  if (App.mode==='fieldView' && App.selectedField) return short?App.selectedField:`${t('field')}: ${App.selectedField}`;
   return 'All';
 }
 
 /***** Language select *****/
-const langSelect=$('#langSelect'); langSelect.value=getLang(); langSelect.addEventListener('change',()=>{ setLang(langSelect.value); applyI18n(); });
+const langSelect=$('#langSelect'); langSelect.value=getLang(); langSelect.addEventListener('change',()=>{ setLang(langSelect.value); applyI18n(); renderHome(); renderFieldCategories(); renderCategoryDash(); renderTable(); renderGlobalDash(); renderAllRecords(); });
 
 /***** Init *****/
 (function init(){
   if (!localStorage.getItem(SETTINGS_KEY)) saveSettings(DEFAULT_SETTINGS);
-  applyI18n(); renderHome(); renderGlobalDash(); renderAllRecords();
+  applyI18n();
+  renderHome(); renderGlobalDash(); renderAllRecords();
 })();
