@@ -15,20 +15,21 @@
     </div>
 
     <nav class="tabs">
-      <button class="tab-btn active" data-tab="homeTiles">Home</button>
-      <button class="tab-btn" data-tab="globalDash">Global Dashboard</button>
-      <button class="tab-btn" data-tab="recordsAll">All Records</button>
-      <button class="tab-btn" data-tab="settings">Settings</button>
+      <button class="tab-btn active" data-tab="homeTiles" data-i18n="nav_home">Home</button>
+      <button class="tab-btn" data-tab="globalDash" data-i18n="nav_global">Global Dashboard</button>
+      <button class="tab-btn" data-tab="recordsAll" data-i18n="nav_all_records">All Records</button>
+      <button class="tab-btn" data-tab="settings" data-i18n="nav_settings">Settings</button>
     </nav>
 
     <div class="header-actions">
-      <button id="exportCsvBtn" class="btn small">Export CSV</button>
-      <button id="exportJsonBtn" class="btn small secondary">Backup (JSON)</button>
-      <label class="btn small outline import-label">
+      <button id="exportCsvBtn" class="btn small" data-i18n="action_export_csv">Export CSV</button>
+      <button id="exportJsonBtn" class="btn small secondary" data-i18n="action_backup_json">Backup (JSON)</button>
+      <label class="btn small outline import-label" data-i18n="action_restore">
         Restore <input type="file" id="importJsonInput" accept="application/json" hidden>
       </label>
-      <button id="downloadPngBtn" class="btn small outline">Download Report (PNG)</button>
-      <select id="langSelect" class="lang" title="Language">
+      <button id="downloadPngBtn" class="btn small outline" data-i18n="action_download_png">Download Report (PNG)</button>
+
+      <select id="langSelect" class="lang" title="Language" aria-label="Language">
         <option value="en">English</option>
         <option value="kn">ಕನ್ನಡ</option>
         <option value="ta">தமிழ்</option>
@@ -39,26 +40,28 @@
   <main>
     <!-- HOME: FIELD TILES -->
     <section id="homeTiles" class="tab active">
-      <h2 class="section-title">Fields / Areas</h2>
+      <h2 class="section-title" data-i18n="fields_title">Fields / Areas</h2>
       <div id="fieldsGrid" class="tiles-grid"></div>
-      <p class="muted">Tip: Add or rename fields in <strong>Settings → Fields</strong>.</p>
+      <p class="muted" data-i18n="fields_tip">Tip: Add or rename fields in <strong>Settings → Fields</strong>.</p>
     </section>
 
     <!-- FIELD VIEW: CATEGORY TILES -->
     <section id="fieldView" class="tab">
       <div class="crumbs">
-        <button id="backToHome" class="link-btn">← Back to Fields</button>
+        <button id="backToHome" class="link-btn" data-i18n="back_to_fields">← Back to Fields</button>
         <span class="sep">/</span>
         <span id="crumbField" class="crumb-strong"></span>
       </div>
-      <h2 class="section-title">Categories in <span id="fieldNameLabel"></span></h2>
+      <h2 class="section-title">
+        <span data-i18n="cats_in">Categories in</span> <span id="fieldNameLabel"></span>
+      </h2>
       <div id="categoriesGrid" class="tiles-grid"></div>
     </section>
 
     <!-- CATEGORY VIEW: DASH/ADD/RECORDS for selected Field + Category -->
     <section id="categoryView" class="tab">
       <div class="crumbs">
-        <button id="backToField" class="link-btn">← Back to Categories</button>
+        <button id="backToField" class="link-btn" data-i18n="back_to_categories">← Back to Categories</button>
         <span class="sep">/</span>
         <span id="crumbField2"></span>
         <span class="sep">/</span>
@@ -66,81 +69,81 @@
       </div>
 
       <nav class="subtabs">
-        <button class="subtab-btn active" data-subtab="catDash">Dashboard</button>
-        <button class="subtab-btn" data-subtab="catAdd">Add Entry</button>
-        <button class="subtab-btn" data-subtab="catRecords">Records</button>
+        <button class="subtab-btn active" data-subtab="catDash" data-i18n="sub_dash">Dashboard</button>
+        <button class="subtab-btn" data-subtab="catAdd" data-i18n="sub_add">Add Entry</button>
+        <button class="subtab-btn" data-subtab="catRecords" data-i18n="sub_records">Records</button>
       </nav>
 
       <!-- Category Dashboard -->
       <section id="catDash" class="subtab active">
         <div class="stats-grid">
           <div class="card stat gradient-green">
-            <h3>Total Cost (This Month)</h3>
+            <h3 data-i18n="stat_total_month">Total Cost (This Month)</h3>
             <p id="catTotalCost" class="stat-value">₹0</p>
           </div>
           <div class="card stat gradient-cyan">
-            <h3>Entries (This Month)</h3>
+            <h3 data-i18n="stat_entries_month">Entries (This Month)</h3>
             <p id="catEntryCount" class="stat-value">0</p>
           </div>
           <div class="card stat gradient-purple">
-            <h3>Average Cost / Entry</h3>
+            <h3 data-i18n="stat_avg">Average Cost / Entry</h3>
             <p id="catAvgCost" class="stat-value">₹0</p>
           </div>
         </div>
         <canvas id="catBar" width="920" height="220" class="card" style="margin-top:10px"></canvas>
       </section>
 
-      <!-- Add Entry (ONLY Category, Material, Qty, Labourers (Normal/Special), Cost, Notes) -->
+      <!-- Add Entry (Category, Material, Qty, Labourers (Normal/Special), Cost, Notes) -->
       <section id="catAdd" class="subtab">
         <form id="entryForm" class="card form">
           <input type="hidden" id="entryId"/>
 
           <div class="grid">
             <div class="field">
-              <label>Category</label>
+              <label data-i18n="label_category">Category</label>
               <input type="text" id="category" readonly/>
             </div>
 
             <div class="field">
-              <label>Date</label>
+              <label data-i18n="label_date">Date</label>
               <input type="date" id="date" required/>
             </div>
 
             <div class="field full">
-              <label>Material (if any)</label>
-              <input type="text" id="material" placeholder="Urea / Neem oil / Spare"/>
+              <label data-i18n="label_material">Material (if any)</label>
+              <input type="text" id="material" data-i18n-ph="ph_material" placeholder="Urea / Neem oil / Spare"/>
             </div>
 
             <div class="field">
-              <label>Quantity</label>
+              <label data-i18n="label_quantity">Quantity</label>
               <input type="number" id="quantity" step="0.01" min="0"/>
             </div>
 
             <div class="field">
-              <label>Normal Labourers (count)</label>
+              <label data-i18n="label_normal_count">Normal Labourers (count)</label>
               <input type="number" id="normalLab" step="1" min="0"/>
             </div>
 
             <div class="field">
-              <label>Special Labourers (count)</label>
+              <label data-i18n="label_special_count">Special Labourers (count)</label>
               <input type="number" id="specialLab" step="1" min="0"/>
             </div>
 
             <div class="field">
-              <label>Cost</label>
+              <label data-i18n="label_cost">Cost</label>
               <input type="number" id="cost" step="0.01" min="0"/>
               <small id="autoCostHint" class="muted"></small>
             </div>
           </div>
 
           <div class="field full">
-            <label>Notes</label>
-            <textarea id="notes" rows="3" placeholder="Vendor, bill no., weather, etc."></textarea>
+            <label data-i18n="label_notes">Notes</label>
+            <textarea id="notes" rows="3" data-i18n-ph="ph_notes" placeholder="Vendor, bill no., weather, etc."></textarea>
           </div>
 
           <div class="actions">
-            <button type="submit" id="saveBtn" class="btn">Save</button>
-            <button type="button" id="resetBtn" class="btn secondary">Reset</button>
+            <button type="submit" id="saveBtn" class="btn" data-i18n="btn_save">Save</button>
+            <button type="button" id="resetBtn" class="btn secondary" data-i18n="btn_reset">Reset</button>
           </div>
         </form>
       </section>
@@ -148,25 +151,31 @@
       <!-- Category Records -->
       <section id="catRecords" class="subtab">
         <div class="card filters">
-          <div class="field"><label>From</label><input type="date" id="filterFrom"/></div>
-          <div class="field"><label>To</label><input type="date" id="filterTo"/></div>
-          <div class="field full"><label>Search</label><input type="text" id="filterSearch" placeholder="material, notes"/></div>
+          <div class="field"><label data-i18n="label_from">From</label><input type="date" id="filterFrom"/></div>
+          <div class="field"><label data-i18n="label_to">To</label><input type="date" id="filterTo"/></div>
+          <div class="field full"><label data-i18n="label_search">Search</label><input type="text" id="filterSearch" data-i18n-ph="ph_search_cat" placeholder="material, notes"/></div>
         </div>
 
         <div class="table-wrap card">
           <table id="recordsTable">
             <thead>
               <tr>
-                <th>Date</th><th>Category</th><th>Field</th>
-                <th>Material</th><th>Qty</th>
-                <th>Normal</th><th>Special</th>
-                <th>Cost</th><th>Notes</th><th></th>
+                <th data-i18n="th_date">Date</th>
+                <th data-i18n="th_category">Category</th>
+                <th data-i18n="th_field">Field</th>
+                <th data-i18n="th_material">Material</th>
+                <th data-i18n="th_qty">Qty</th>
+                <th data-i18n="th_normal">Normal</th>
+                <th data-i18n="th_special">Special</th>
+                <th data-i18n="th_cost">Cost</th>
+                <th data-i18n="th_notes">Notes</th>
+                <th></th>
               </tr>
             </thead>
             <tbody></tbody>
             <tfoot>
               <tr>
-                <td colspan="7" class="right strong">Total</td>
+                <td colspan="7" class="right strong" data-i18n="total">Total</td>
                 <td id="tableTotal">₹0</td>
                 <td colspan="2"></td>
               </tr>
@@ -178,23 +187,23 @@
 
     <!-- GLOBAL DASHBOARD -->
     <section id="globalDash" class="tab">
-      <h2 class="section-title">Global Dashboard (All Fields)</h2>
+      <h2 class="section-title" data-i18n="global_title">Global Dashboard (All Fields)</h2>
       <div class="stats-grid">
         <div class="card stat gradient-green">
-          <h3>Total Cost (This Month)</h3>
+          <h3 data-i18n="stat_total_month">Total Cost (This Month)</h3>
           <p id="gTotal" class="stat-value">₹0</p>
         </div>
         <div class="card stat gradient-cyan">
-          <h3>Entries (This Month)</h3>
+          <h3 data-i18n="stat_entries_month">Entries (This Month)</h3>
           <p id="gCount" class="stat-value">0</p>
         </div>
         <div class="card stat gradient-purple">
-          <h3>Top Category</h3>
+          <h3 data-i18n="stat_top_cat">Top Category</h3>
           <p id="gTopCat" class="stat-value">—</p>
         </div>
       </div>
       <div class="card">
-        <h3 style="margin-top:0">By Category (This Month)</h3>
+        <h3 style="margin-top:0" data-i18n="by_cat_month">By Category (This Month)</h3>
         <div id="gByCat" class="chips-wrap"></div>
       </div>
       <canvas id="gBar" width="980" height="260" class="card" style="margin-top:12px"></canvas>
@@ -202,22 +211,27 @@
 
     <!-- ALL RECORDS -->
     <section id="recordsAll" class="tab">
-      <h2 class="section-title">All Records</h2>
+      <h2 class="section-title" data-i18n="allrec_title">All Records</h2>
       <div class="card filters">
-        <div class="field"><label>From</label><input type="date" id="aFrom"/></div>
-        <div class="field"><label>To</label><input type="date" id="aTo"/></div>
-        <div class="field"><label>Category</label><select id="aCat"></select></div>
-        <div class="field"><label>Field</label><select id="aField"></select></div>
-        <div class="field full"><label>Search</label><input type="text" id="aQ" placeholder="material, notes"/></div>
+        <div class="field"><label data-i18n="label_from">From</label><input type="date" id="aFrom"/></div>
+        <div class="field"><label data-i18n="label_to">To</label><input type="date" id="aTo"/></div>
+        <div class="field"><label data-i18n="label_category">Category</label><select id="aCat"></select></div>
+        <div class="field"><label data-i18n="label_field">Field</label><select id="aField"></select></div>
+        <div class="field full"><label data-i18n="label_search">Search</label><input type="text" id="aQ" data-i18n-ph="ph_search_all" placeholder="material, notes"/></div>
       </div>
       <div class="table-wrap card">
         <table id="allTable">
           <thead>
             <tr>
-              <th>Date</th><th>Category</th><th>Field</th>
-              <th>Material</th><th>Qty</th>
-              <th>Normal</th><th>Special</th>
-              <th>Cost</th><th>Notes</th>
+              <th data-i18n="th_date">Date</th>
+              <th data-i18n="th_category">Category</th>
+              <th data-i18n="th_field">Field</th>
+              <th data-i18n="th_material">Material</th>
+              <th data-i18n="th_qty">Qty</th>
+              <th data-i18n="th_normal">Normal</th>
+              <th data-i18n="th_special">Special</th>
+              <th data-i18n="th_cost">Cost</th>
+              <th data-i18n="th_notes">Notes</th>
             </tr>
           </thead>
           <tbody></tbody>
@@ -227,54 +241,55 @@
 
     <!-- SETTINGS -->
     <section id="settings" class="tab">
-      <h2 class="section-title">Settings</h2>
+      <h2 class="section-title" data-i18n="settings_title">Settings</h2>
 
       <div class="card settings-block">
-        <h3>Fields / Areas</h3>
+        <h3 data-i18n="settings_fields">Fields / Areas</h3>
         <div class="inline-row">
-          <input type="text" id="newFieldName" placeholder="e.g., Hill Block"/>
-          <button id="addFieldBtn" class="btn">Add Field</button>
+          <input type="text" id="newFieldName" data-i18n-ph="ph_new_field" placeholder="e.g., Hill Block"/>
+          <button id="addFieldBtn" class="btn" data-i18n="btn_add_field">Add Field</button>
         </div>
         <ul id="fieldsList" class="list-manage"></ul>
       </div>
 
       <div class="card settings-block">
-        <h3>Categories</h3>
+        <h3 data-i18n="settings_cats">Categories</h3>
         <div class="inline-grid-3">
-          <input type="text" id="newCatName" placeholder="Category name (e.g., Weeding)"/>
-          <input type="text" id="newCatIcon" placeholder="Emoji icon (e.g., 🌿)"/>
+          <input type="text" id="newCatName" data-i18n-ph="ph_new_cat" placeholder="Category name (e.g., Weeding)"/>
+          <input type="text" id="newCatIcon" data-i18n-ph="ph_new_icon" placeholder="Emoji icon (e.g., 🌿)"/>
           <input type="color" id="newCatColor" value="#7dd3fc"/>
-          <button id="addCatBtn" class="btn">Add Category</button>
+          <button id="addCatBtn" class="btn" data-i18n="btn_add_cat">Add Category</button>
         </div>
         <ul id="catsList" class="list-manage"></ul>
+        <p class="muted" data-i18n="cats_tip">Tip: Use any emoji (🌿 🧑‍🌾 💧 🧪 🛠️ 🧺 ₹) or keep defaults.</p>
       </div>
 
       <div class="card settings-block">
-        <h3>General</h3>
+        <h3 data-i18n="settings_general">General</h3>
         <div class="inline-grid-3">
           <div>
-            <label>Normal Labourer Rate (₹ / person)</label>
+            <label data-i18n="rate_normal">Normal Labourer Rate (₹ / person)</label>
             <input type="number" id="rateNormal" step="1" min="0" placeholder="500"/>
           </div>
           <div>
-            <label>Special Labourer Rate (₹ / person)</label>
+            <label data-i18n="rate_special">Special Labourer Rate (₹ / person)</label>
             <input type="number" id="rateSpecial" step="1" min="0" placeholder="700"/>
           </div>
           <div>
-            <label>Currency Symbol</label>
+            <label data-i18n="label_currency">Currency Symbol</label>
             <input type="text" id="settingsCurrency" maxlength="3" placeholder="₹"/>
           </div>
         </div>
         <div class="inline-row" style="margin-top:10px">
-          <button id="saveSettingsBtn" class="btn">Save</button>
+          <button id="saveSettingsBtn" class="btn" data-i18n="btn_save">Save</button>
         </div>
-        <p class="muted" style="margin-top:6px">Cost auto‑calculation = <strong>Normal × Normal Rate + Special × Special Rate</strong>. You can still override cost in the form.</p>
+        <p class="muted" data-i18n="rate_hint">Cost auto‑calculation = Normal × Normal Rate + Special × Special Rate (editable).</p>
       </div>
     </section>
   </main>
 
   <footer>
-    <small>Made for your farm • Local-only data</small>
+    <small data-i18n="footer_note">Made for your farm • Local-only data</small>
   </footer>
 
   <script src="app.js"></script>
