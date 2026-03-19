@@ -74,13 +74,6 @@ main{ max-width:1200px; margin:22px auto; padding:0 16px; }
 
 .chips-wrap{ display:flex; flex-wrap:wrap; gap:8px; margin:8px 0 0; }
 
-/* Category chips (for By Category) */
-.chip-cat{
-  display:inline-flex; align-items:center; gap:6px;
-  padding:6px 10px; border-radius:999px; font-weight:800; font-size:.86rem;
-  border:1px solid #2a3b66; background:#0b1430; color:#cfe0ff; white-space:nowrap;
-}
-
 /* Forms */
 .form .grid{ display:grid; gap:12px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
 .field label{ display:block; color:#b8c7ef; margin-bottom:6px; font-weight:700; }
@@ -99,10 +92,6 @@ thead th{ text-align:left; font-weight:900; color:#cfe0ff; background:linear-gra
 td{ padding:10px; border-bottom:1px solid #1d2a4e; color:#e6eeff; }
 tbody tr:hover{ background:#0e1731; }
 .right{ text-align:right } .strong{ font-weight:800; }
-
-.row-actions{ white-space:nowrap; display:flex; gap:6px; }
-button.danger{ background:linear-gradient(135deg,#ff9aa7,#ff6b6b); color:#23141b; border:none; padding:6px 10px; border-radius:8px; cursor:pointer; }
-button.secondary.small{ padding:6px 10px; }
 
 /* Settings manage lists */
 .settings-block{ margin-bottom:14px; }
