@@ -90,47 +90,42 @@
         <canvas id="catBar" width="920" height="220" class="card" style="margin-top:10px"></canvas>
       </section>
 
-      <!-- Add Entry (pre-filled with Field + Category) -->
+      <!-- Add Entry (ONLY Category, Material, Qty, Labourers (Normal/Special), Cost, Notes) -->
       <section id="catAdd" class="subtab">
         <form id="entryForm" class="card form">
           <input type="hidden" id="entryId"/>
+
           <div class="grid">
-            <div class="field">
-              <label>Field / Area</label>
-              <input type="text" id="field" readonly/>
-            </div>
             <div class="field">
               <label>Category</label>
               <input type="text" id="category" readonly/>
             </div>
+
             <div class="field">
               <label>Date</label>
               <input type="date" id="date" required/>
             </div>
-            <div class="field">
-              <label>Activity</label>
-              <input type="text" id="activity" placeholder="Weeding / Foliar spray / Harvest"/>
-            </div>
-            <div class="field">
+
+            <div class="field full">
               <label>Material (if any)</label>
               <input type="text" id="material" placeholder="Urea / Neem oil / Spare"/>
             </div>
+
             <div class="field">
               <label>Quantity</label>
               <input type="number" id="quantity" step="0.01" min="0"/>
             </div>
+
             <div class="field">
-              <label>Unit</label>
-              <input type="text" id="unit" placeholder="kg, L, hrs, bags"/>
+              <label>Normal Labourers (count)</label>
+              <input type="number" id="normalLab" step="1" min="0"/>
             </div>
+
             <div class="field">
-              <label>Labourers</label>
-              <input type="number" id="laborers" step="1" min="0"/>
+              <label>Special Labourers (count)</label>
+              <input type="number" id="specialLab" step="1" min="0"/>
             </div>
-            <div class="field">
-              <label>Hours</label>
-              <input type="number" id="hours" step="0.5" min="0"/>
-            </div>
+
             <div class="field">
               <label>Cost</label>
               <input type="number" id="cost" step="0.01" min="0"/>
@@ -155,7 +150,7 @@
         <div class="card filters">
           <div class="field"><label>From</label><input type="date" id="filterFrom"/></div>
           <div class="field"><label>To</label><input type="date" id="filterTo"/></div>
-          <div class="field full"><label>Search</label><input type="text" id="filterSearch" placeholder="activity, material, notes"/></div>
+          <div class="field full"><label>Search</label><input type="text" id="filterSearch" placeholder="material, notes"/></div>
         </div>
 
         <div class="table-wrap card">
@@ -163,14 +158,15 @@
             <thead>
               <tr>
                 <th>Date</th><th>Category</th><th>Field</th>
-                <th>Activity / Material</th><th>Qty</th><th>Unit</th>
-                <th>Lab</th><th>Hrs</th><th>Cost</th><th>Notes</th><th></th>
+                <th>Material</th><th>Qty</th>
+                <th>Normal</th><th>Special</th>
+                <th>Cost</th><th>Notes</th><th></th>
               </tr>
             </thead>
             <tbody></tbody>
             <tfoot>
               <tr>
-                <td colspan="8" class="right strong">Total</td>
+                <td colspan="7" class="right strong">Total</td>
                 <td id="tableTotal">₹0</td>
                 <td colspan="2"></td>
               </tr>
@@ -204,27 +200,24 @@
       <canvas id="gBar" width="980" height="260" class="card" style="margin-top:12px"></canvas>
     </section>
 
-    <!-- ALL RECORDS (no field/category filter) -->
+    <!-- ALL RECORDS -->
     <section id="recordsAll" class="tab">
       <h2 class="section-title">All Records</h2>
       <div class="card filters">
         <div class="field"><label>From</label><input type="date" id="aFrom"/></div>
         <div class="field"><label>To</label><input type="date" id="aTo"/></div>
-        <div class="field"><label>Category</label>
-          <select id="aCat"></select>
-        </div>
-        <div class="field"><label>Field</label>
-          <select id="aField"></select>
-        </div>
-        <div class="field full"><label>Search</label><input type="text" id="aQ" placeholder="activity, material, notes"/></div>
+        <div class="field"><label>Category</label><select id="aCat"></select></div>
+        <div class="field"><label>Field</label><select id="aField"></select></div>
+        <div class="field full"><label>Search</label><input type="text" id="aQ" placeholder="material, notes"/></div>
       </div>
       <div class="table-wrap card">
         <table id="allTable">
           <thead>
             <tr>
               <th>Date</th><th>Category</th><th>Field</th>
-              <th>Activity / Material</th><th>Qty</th><th>Unit</th>
-              <th>Lab</th><th>Hrs</th><th>Cost</th><th>Notes</th>
+              <th>Material</th><th>Qty</th>
+              <th>Normal</th><th>Special</th>
+              <th>Cost</th><th>Notes</th>
             </tr>
           </thead>
           <tbody></tbody>
@@ -254,24 +247,28 @@
           <button id="addCatBtn" class="btn">Add Category</button>
         </div>
         <ul id="catsList" class="list-manage"></ul>
-        <p class="muted">Tip: Use any emoji (🌿 🧑‍🌾 💧 🧪 🛠️ 🧺 ₹) or keep defaults.</p>
       </div>
 
       <div class="card settings-block">
         <h3>General</h3>
         <div class="inline-grid-3">
           <div>
-            <label>Wage Rate per Hour (₹)</label>
-            <input type="number" id="settingsWage" step="1" min="0" placeholder="50"/>
+            <label>Normal Labourer Rate (₹ / person)</label>
+            <input type="number" id="rateNormal" step="1" min="0" placeholder="500"/>
+          </div>
+          <div>
+            <label>Special Labourer Rate (₹ / person)</label>
+            <input type="number" id="rateSpecial" step="1" min="0" placeholder="700"/>
           </div>
           <div>
             <label>Currency Symbol</label>
             <input type="text" id="settingsCurrency" maxlength="3" placeholder="₹"/>
           </div>
-          <div class="align-end">
-            <button id="saveSettingsBtn" class="btn">Save</button>
-          </div>
         </div>
+        <div class="inline-row" style="margin-top:10px">
+          <button id="saveSettingsBtn" class="btn">Save</button>
+        </div>
+        <p class="muted" style="margin-top:6px">Cost auto‑calculation = <strong>Normal × Normal Rate + Special × Special Rate</strong>. You can still override cost in the form.</p>
       </div>
     </section>
   </main>
