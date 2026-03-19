@@ -1,23 +1,23 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>EverGreen Farm Activity & Expense Tracker</title>
   <link rel="stylesheet" href="styles.css"/>
 </head>
 <body>
-  <!-- APP HEADER -->
+  <!-- HEADER -->
   <header class="app-header glass">
     <div class="brand">
       <div class="logo-dot"></div>
-      <h1>EverGreen Farm Activity & Expense Tracker</h1>
+      <h1 id="brandTitle">EverGreen Farm Activity & Expense Tracker</h1>
     </div>
 
     <nav class="tabs">
-      <button class="tab-btn active" data-tab="dashboard">Dashboard</button>
-      <button class="tab-btn" data-tab="add">Add Entry</button>
-      <button class="tab-btn" data-tab="records">Records</button>
+      <button class="tab-btn active" data-tab="homeTiles">Home</button>
+      <button class="tab-btn" data-tab="globalDash">Global Dashboard</button>
+      <button class="tab-btn" data-tab="recordsAll">All Records</button>
       <button class="tab-btn" data-tab="settings">Settings</button>
     </nav>
 
@@ -27,8 +27,8 @@
       <label class="btn small outline import-label">
         Restore <input type="file" id="importJsonInput" accept="application/json" hidden>
       </label>
-
-      <select id="langSelect" title="Language" class="lang">
+      <button id="downloadPngBtn" class="btn small outline">Download Report (PNG)</button>
+      <select id="langSelect" class="lang" title="Language">
         <option value="en">English</option>
         <option value="kn">ಕನ್ನಡ</option>
         <option value="ta">தமிழ்</option>
@@ -37,182 +37,197 @@
   </header>
 
   <main>
-    <!-- DASHBOARD -->
-    <section id="dashboard" class="tab active">
-      <h2 class="section-title">Dashboard <span class="muted">(This Month)</span></h2>
+    <!-- HOME: FIELD TILES -->
+    <section id="homeTiles" class="tab active">
+      <h2 class="section-title">Fields / Areas</h2>
+      <div id="fieldsGrid" class="tiles-grid"></div>
+      <p class="muted">Tip: Add or rename fields in <strong>Settings → Fields</strong>.</p>
+    </section>
+
+    <!-- FIELD VIEW: CATEGORY TILES -->
+    <section id="fieldView" class="tab">
+      <div class="crumbs">
+        <button id="backToHome" class="link-btn">← Back to Fields</button>
+        <span class="sep">/</span>
+        <span id="crumbField" class="crumb-strong"></span>
+      </div>
+      <h2 class="section-title">Categories in <span id="fieldNameLabel"></span></h2>
+      <div id="categoriesGrid" class="tiles-grid"></div>
+    </section>
+
+    <!-- CATEGORY VIEW: DASH/ADD/RECORDS for selected Field + Category -->
+    <section id="categoryView" class="tab">
+      <div class="crumbs">
+        <button id="backToField" class="link-btn">← Back to Categories</button>
+        <span class="sep">/</span>
+        <span id="crumbField2"></span>
+        <span class="sep">/</span>
+        <span id="crumbCategory" class="crumb-strong"></span>
+      </div>
+
+      <nav class="subtabs">
+        <button class="subtab-btn active" data-subtab="catDash">Dashboard</button>
+        <button class="subtab-btn" data-subtab="catAdd">Add Entry</button>
+        <button class="subtab-btn" data-subtab="catRecords">Records</button>
+      </nav>
+
+      <!-- Category Dashboard -->
+      <section id="catDash" class="subtab active">
+        <div class="stats-grid">
+          <div class="card stat gradient-green">
+            <h3>Total Cost (This Month)</h3>
+            <p id="catTotalCost" class="stat-value">₹0</p>
+          </div>
+          <div class="card stat gradient-cyan">
+            <h3>Entries (This Month)</h3>
+            <p id="catEntryCount" class="stat-value">0</p>
+          </div>
+          <div class="card stat gradient-purple">
+            <h3>Average Cost / Entry</h3>
+            <p id="catAvgCost" class="stat-value">₹0</p>
+          </div>
+        </div>
+        <canvas id="catBar" width="920" height="220" class="card" style="margin-top:10px"></canvas>
+      </section>
+
+      <!-- Add Entry (pre-filled with Field + Category) -->
+      <section id="catAdd" class="subtab">
+        <form id="entryForm" class="card form">
+          <input type="hidden" id="entryId"/>
+          <div class="grid">
+            <div class="field">
+              <label>Field / Area</label>
+              <input type="text" id="field" readonly/>
+            </div>
+            <div class="field">
+              <label>Category</label>
+              <input type="text" id="category" readonly/>
+            </div>
+            <div class="field">
+              <label>Date</label>
+              <input type="date" id="date" required/>
+            </div>
+            <div class="field">
+              <label>Activity</label>
+              <input type="text" id="activity" placeholder="Weeding / Foliar spray / Harvest"/>
+            </div>
+            <div class="field">
+              <label>Material (if any)</label>
+              <input type="text" id="material" placeholder="Urea / Neem oil / Spare"/>
+            </div>
+            <div class="field">
+              <label>Quantity</label>
+              <input type="number" id="quantity" step="0.01" min="0"/>
+            </div>
+            <div class="field">
+              <label>Unit</label>
+              <input type="text" id="unit" placeholder="kg, L, hrs, bags"/>
+            </div>
+            <div class="field">
+              <label>Labourers</label>
+              <input type="number" id="laborers" step="1" min="0"/>
+            </div>
+            <div class="field">
+              <label>Hours</label>
+              <input type="number" id="hours" step="0.5" min="0"/>
+            </div>
+            <div class="field">
+              <label>Cost</label>
+              <input type="number" id="cost" step="0.01" min="0"/>
+              <small id="autoCostHint" class="muted"></small>
+            </div>
+          </div>
+
+          <div class="field full">
+            <label>Notes</label>
+            <textarea id="notes" rows="3" placeholder="Vendor, bill no., weather, etc."></textarea>
+          </div>
+
+          <div class="actions">
+            <button type="submit" id="saveBtn" class="btn">Save</button>
+            <button type="button" id="resetBtn" class="btn secondary">Reset</button>
+          </div>
+        </form>
+      </section>
+
+      <!-- Category Records -->
+      <section id="catRecords" class="subtab">
+        <div class="card filters">
+          <div class="field"><label>From</label><input type="date" id="filterFrom"/></div>
+          <div class="field"><label>To</label><input type="date" id="filterTo"/></div>
+          <div class="field full"><label>Search</label><input type="text" id="filterSearch" placeholder="activity, material, notes"/></div>
+        </div>
+
+        <div class="table-wrap card">
+          <table id="recordsTable">
+            <thead>
+              <tr>
+                <th>Date</th><th>Category</th><th>Field</th>
+                <th>Activity / Material</th><th>Qty</th><th>Unit</th>
+                <th>Lab</th><th>Hrs</th><th>Cost</th><th>Notes</th><th></th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+            <tfoot>
+              <tr>
+                <td colspan="8" class="right strong">Total</td>
+                <td id="tableTotal">₹0</td>
+                <td colspan="2"></td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </section>
+    </section>
+
+    <!-- GLOBAL DASHBOARD -->
+    <section id="globalDash" class="tab">
+      <h2 class="section-title">Global Dashboard (All Fields)</h2>
       <div class="stats-grid">
         <div class="card stat gradient-green">
-          <h3>Total Cost</h3>
-          <p id="totalCost" class="stat-value">₹0</p>
-          <span class="chip">Sum of all entries this month</span>
+          <h3>Total Cost (This Month)</h3>
+          <p id="gTotal" class="stat-value">₹0</p>
         </div>
-
         <div class="card stat gradient-cyan">
-          <h3>By Category</h3>
-          <div id="byCategory"></div>
-          <span class="chip">Top spend categories</span>
+          <h3>Entries (This Month)</h3>
+          <p id="gCount" class="stat-value">0</p>
         </div>
-
         <div class="card stat gradient-purple">
-          <h3>Entries</h3>
-          <p id="entryCount" class="stat-value">0</p>
-          <span class="chip">Count this month</span>
+          <h3>Top Category</h3>
+          <p id="gTopCat" class="stat-value">—</p>
         </div>
       </div>
-
-      <div class="tip">
-        <span class="tip-icon">💾</span>
-        <span>Use <strong>“Backup (JSON)”</strong> weekly to save to your cloud drive.</span>
+      <div class="card">
+        <h3 style="margin-top:0">By Category (This Month)</h3>
+        <div id="gByCat" class="chips-wrap"></div>
       </div>
+      <canvas id="gBar" width="980" height="260" class="card" style="margin-top:12px"></canvas>
     </section>
 
-    <!-- ADD ENTRY -->
-    <section id="add" class="tab">
-      <h2 class="section-title">Add Entry</h2>
-
-      <details class="templates">
-        <summary>Quick Templates</summary>
-        <div class="template-row">
-          <select id="templateSelect"></select>
-          <button id="applyTemplateBtn" class="btn outline">Apply</button>
-        </div>
-      </details>
-
-      <form id="entryForm" class="card form">
-        <input type="hidden" id="entryId"/>
-
-        <div class="grid">
-          <div class="field">
-            <label for="date">Date</label>
-            <input type="date" id="date" required />
-          </div>
-
-          <div class="field">
-            <label for="category">Category</label>
-            <select id="category" required>
-              <option value="">—</option>
-              <option>Labour</option>
-              <option>Fertilizer</option>
-              <option>Pesticide</option>
-              <option>Irrigation</option>
-              <option>Harvest</option>
-              <option>Expense</option>
-              <option>Other</option>
-            </select>
-          </div>
-
-          <div class="field">
-            <label for="plot">Plot/Block</label>
-            <input type="text" id="plot" list="plotsList" placeholder="Block A" />
-            <datalist id="plotsList"></datalist>
-          </div>
-
-          <div class="field">
-            <label for="activity">Activity</label>
-            <input type="text" id="activity" placeholder="Weeding" />
-          </div>
-
-          <div class="field">
-            <label for="material">Material (if any)</label>
-            <input type="text" id="material" placeholder="Urea / Mancozeb" />
-          </div>
-
-          <div class="field">
-            <label for="quantity">Quantity</label>
-            <input type="number" id="quantity" step="0.01" min="0" />
-          </div>
-
-          <div class="field">
-            <label for="unit">Unit</label>
-            <input type="text" id="unit" placeholder="kg, L, hrs" />
-          </div>
-
-          <div class="field">
-            <label for="laborers">Labourers</label>
-            <input type="number" id="laborers" step="1" min="0" />
-          </div>
-
-          <div class="field">
-            <label for="hours">Hours</label>
-            <input type="number" id="hours" step="0.5" min="0" />
-          </div>
-
-          <div class="field">
-            <label for="cost">Cost (₹)</label>
-            <input type="number" id="cost" step="0.01" min="0" />
-            <small id="autoCostHint" class="muted"></small>
-          </div>
-        </div>
-
-        <div class="field full">
-          <label for="notes">Notes</label>
-          <textarea id="notes" rows="3" placeholder="Vendor, bill no., weather, etc."></textarea>
-        </div>
-
-        <div class="actions">
-          <button type="submit" id="saveBtn" class="btn">Save</button>
-          <button type="button" id="resetBtn" class="btn secondary">Reset</button>
-        </div>
-      </form>
-    </section>
-
-    <!-- RECORDS -->
-    <section id="records" class="tab">
-      <h2 class="section-title">Records</h2>
-
+    <!-- ALL RECORDS (no field/category filter) -->
+    <section id="recordsAll" class="tab">
+      <h2 class="section-title">All Records</h2>
       <div class="card filters">
-        <div class="field">
-          <label>From</label>
-          <input type="date" id="filterFrom"/>
+        <div class="field"><label>From</label><input type="date" id="aFrom"/></div>
+        <div class="field"><label>To</label><input type="date" id="aTo"/></div>
+        <div class="field"><label>Category</label>
+          <select id="aCat"></select>
         </div>
-        <div class="field">
-          <label>To</label>
-          <input type="date" id="filterTo"/>
+        <div class="field"><label>Field</label>
+          <select id="aField"></select>
         </div>
-        <div class="field">
-          <label>Category</label>
-          <select id="filterCategory">
-            <option value="">All</option>
-            <option>Labour</option>
-            <option>Fertilizer</option>
-            <option>Pesticide</option>
-            <option>Irrigation</option>
-            <option>Harvest</option>
-            <option>Expense</option>
-            <option>Other</option>
-          </select>
-        </div>
-        <div class="field full">
-          <label>Search</label>
-          <input type="text" id="filterSearch" placeholder="plot, material, notes"/>
-        </div>
+        <div class="field full"><label>Search</label><input type="text" id="aQ" placeholder="activity, material, notes"/></div>
       </div>
-
       <div class="table-wrap card">
-        <table id="recordsTable">
+        <table id="allTable">
           <thead>
             <tr>
-              <th>Date</th>
-              <th>Category</th>
-              <th>Plot</th>
-              <th>Activity / Material</th>
-              <th>Qty</th>
-              <th>Unit</th>
-              <th>Lab</th>
-              <th>Hrs</th>
-              <th>Cost (₹)</th>
-              <th>Notes</th>
-              <th></th>
+              <th>Date</th><th>Category</th><th>Field</th>
+              <th>Activity / Material</th><th>Qty</th><th>Unit</th>
+              <th>Lab</th><th>Hrs</th><th>Cost</th><th>Notes</th>
             </tr>
           </thead>
           <tbody></tbody>
-          <tfoot>
-            <tr>
-              <td colspan="8" class="right strong">Total</td>
-              <td id="tableTotal">₹0</td>
-              <td colspan="2"></td>
-            </tr>
-          </tfoot>
         </table>
       </div>
     </section>
@@ -220,23 +235,43 @@
     <!-- SETTINGS -->
     <section id="settings" class="tab">
       <h2 class="section-title">Settings</h2>
-      <div class="card grid settings-grid">
-        <div class="field">
-          <label>Plots/Blocks (comma separated)</label>
-          <textarea id="settingsPlots" rows="3" placeholder="Block A, Block B, Block C"></textarea>
+
+      <div class="card settings-block">
+        <h3>Fields / Areas</h3>
+        <div class="inline-row">
+          <input type="text" id="newFieldName" placeholder="e.g., Hill Block"/>
+          <button id="addFieldBtn" class="btn">Add Field</button>
         </div>
-        <div class="field">
-          <label>Wage Rate per Hour (₹)</label>
-          <input type="number" id="settingsWage" step="1" min="0" placeholder="50"/>
-          <small class="muted">Used to auto-calc Labour cost: labourers × hours × rate</small>
-        </div>
-        <div class="field">
-          <label>Currency Symbol</label>
-          <input type="text" id="settingsCurrency" maxlength="3" placeholder="₹"/>
-        </div>
+        <ul id="fieldsList" class="list-manage"></ul>
       </div>
-      <div class="actions">
-        <button id="saveSettingsBtn" class="btn">Save</button>
+
+      <div class="card settings-block">
+        <h3>Categories</h3>
+        <div class="inline-grid-3">
+          <input type="text" id="newCatName" placeholder="Category name (e.g., Weeding)"/>
+          <input type="text" id="newCatIcon" placeholder="Emoji icon (e.g., 🌿)"/>
+          <input type="color" id="newCatColor" value="#7dd3fc"/>
+          <button id="addCatBtn" class="btn">Add Category</button>
+        </div>
+        <ul id="catsList" class="list-manage"></ul>
+        <p class="muted">Tip: Use any emoji (🌿 🧑‍🌾 💧 🧪 🛠️ 🧺 ₹) or keep defaults.</p>
+      </div>
+
+      <div class="card settings-block">
+        <h3>General</h3>
+        <div class="inline-grid-3">
+          <div>
+            <label>Wage Rate per Hour (₹)</label>
+            <input type="number" id="settingsWage" step="1" min="0" placeholder="50"/>
+          </div>
+          <div>
+            <label>Currency Symbol</label>
+            <input type="text" id="settingsCurrency" maxlength="3" placeholder="₹"/>
+          </div>
+          <div class="align-end">
+            <button id="saveSettingsBtn" class="btn">Save</button>
+          </div>
+        </div>
       </div>
     </section>
   </main>
