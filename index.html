@@ -4,34 +4,37 @@
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>EverGreen Farm Activity & Expense Tracker</title>
-  styles.css
+  <!-- styles -->
+  <link rel="stylesheet" href="styles.css"/>
 </head>
 <body>
   <!-- HEADER -->
   <header class="app-header glass">
     <div class="brand">
       <div class="logo-dot"></div>
+      <!-- Keep your brand as-is (not auto-translated) -->
       <h1 id="brandTitle">EverGreen Farm Activity & Expense Tracker</h1>
     </div>
 
     <nav class="tabs">
-      <button class="tab-btn active" data-tab="homeTiles">Home</button>
-      <button class="tab-btn" data-tab="globalDash">Global Dashboard</button>
-      <button class="tab-btn" data-tab="recordsAll">All Records</button>
-      <button class="tab-btn" data-tab="settings">Settings</button>
+      <button class="tab-btn active" data-tab="homeTiles" data-i18n="home">முகப்பு</button>
+      <button class="tab-btn" data-tab="globalDash" data-i18n="global_dashboard">முழுமை டாஷ்போர்டு</button>
+      <button class="tab-btn" data-tab="recordsAll" data-i18n="all_records">அனைத்து பதிவுகள்</button>
+      <button class="tab-btn" data-tab="settings" data-i18n="settings">அமைப்புகள்</button>
     </nav>
 
     <div class="header-actions">
-      <button id="exportCsvBtn" class="btn small">Export CSV</button>
-      <button id="exportJsonBtn" class="btn small secondary">Backup (JSON)</button>
-      <label class="btn small outline import-label">
-        Restore <input type="file" id="importJsonInput" accept="application/json" hidden>
+      <button id="exportCsvBtn" class="btn small" data-i18n="export_csv">CSV ஏற்றுமதி</button>
+      <button id="exportJsonBtn" class="btn small secondary" data-i18n="backup_json">காப்பு (JSON)</button>
+      <label class="btn small outline import-label" data-i18n="restore">
+        மீட்டெடு <input type="file" id="importJsonInput" accept="application/json" hidden>
       </label>
-      <button id="downloadPngBtn" class="btn small outline">Download Report (PNG)</button>
+      <button id="downloadPngBtn" class="btn small outline" data-i18n="download_png">அறிக்கை (PNG) பதிவிறக்கு</button>
+
       <select id="langSelect" class="lang" title="Language">
         <option value="en">English</option>
         <option value="kn">ಕನ್ನಡ</option>
-        <option value="ta">தமிழ்</option>
+        <option value="ta" selected>தமிழ்</option>
       </select>
     </div>
   </header>
@@ -39,26 +42,28 @@
   <main>
     <!-- HOME: FIELD TILES -->
     <section id="homeTiles" class="tab active">
-      <h2 class="section-title">Fields / Areas</h2>
+      <h2 class="section-title" data-i18n="fields_areas">புலங்கள் / பகுதிகள்</h2>
       <div id="fieldsGrid" class="tiles-grid"></div>
-      <p class="muted">Tip: Add or rename fields in <strong>Settings → Fields</strong>.</p>
+      <p class="muted" data-i18n="fields_tip">குறிப்பு: <strong>அமைப்புகள் → புலங்கள்</strong> பகுதியில் சேர்க்கலாம் அல்லது பெயர் மாற்றலாம்.</p>
     </section>
 
     <!-- FIELD VIEW: CATEGORY TILES -->
     <section id="fieldView" class="tab">
       <div class="crumbs">
-        <button id="backToHome" class="link-btn">← Back to Fields</button>
+        <button id="backToHome" class="link-btn" data-i18n="back_to_fields">← புலங்களுக்கு திரும்ப</button>
         <span class="sep">/</span>
         <span id="crumbField" class="crumb-strong"></span>
       </div>
-      <h2 class="section-title">Categories in <span id="fieldNameLabel"></span></h2>
+      <h2 class="section-title">
+        <span data-i18n="categories_in">பகுப்புகள்:</span> <span id="fieldNameLabel"></span>
+      </h2>
       <div id="categoriesGrid" class="tiles-grid"></div>
     </section>
 
-    <!-- CATEGORY VIEW: DASH/ADD/RECORDS for selected Field + Category -->
+    <!-- CATEGORY VIEW -->
     <section id="categoryView" class="tab">
       <div class="crumbs">
-        <button id="backToField" class="link-btn">← Back to Categories</button>
+        <button id="backToField" class="link-btn" data-i18n="back_to_categories">← பகுப்புகளுக்கு திரும்ப</button>
         <span class="sep">/</span>
         <span id="crumbField2"></span>
         <span class="sep">/</span>
@@ -66,81 +71,81 @@
       </div>
 
       <nav class="subtabs">
-        <button class="subtab-btn active" data-subtab="catDash">Dashboard</button>
-        <button class="subtab-btn" data-subtab="catAdd">Add Entry</button>
-        <button class="subtab-btn" data-subtab="catRecords">Records</button>
+        <button class="subtab-btn active" data-subtab="catDash" data-i18n="dashboard">டாஷ்போர்டு</button>
+        <button class="subtab-btn" data-subtab="catAdd" data-i18n="add_entry">பதிவு சேர்</button>
+        <button class="subtab-btn" data-subtab="catRecords" data-i18n="records">பதிவுகள்</button>
       </nav>
 
       <!-- Category Dashboard -->
       <section id="catDash" class="subtab active">
         <div class="stats-grid">
           <div class="card stat gradient-green">
-            <h3>Total Cost (This Month)</h3>
+            <h3 data-i18n="total_cost_month">இந்த மாதம் — மொத்த செலவு</h3>
             <p id="catTotalCost" class="stat-value">₹0</p>
           </div>
           <div class="card stat gradient-cyan">
-            <h3>Entries (This Month)</h3>
+            <h3 data-i18n="entries_month">இந்த மாதம் — பதிவுகள்</h3>
             <p id="catEntryCount" class="stat-value">0</p>
           </div>
           <div class="card stat gradient-purple">
-            <h3>Average Cost / Entry</h3>
+            <h3 data-i18n="avg_per_entry">ஒரு பதிவுக்கான சராசரி</h3>
             <p id="catAvgCost" class="stat-value">₹0</p>
           </div>
         </div>
         <canvas id="catBar" width="920" height="220" class="card" style="margin-top:10px"></canvas>
       </section>
 
-      <!-- Add Entry (ONLY Category, Material, Qty, Labourers (Normal/Special), Cost, Notes) -->
+      <!-- Add Entry (Category context) -->
       <section id="catAdd" class="subtab">
         <form id="entryForm" class="card form">
           <input type="hidden" id="entryId"/>
 
           <div class="grid">
             <div class="field">
-              <label>Category</label>
+              <label data-i18n="category">பகுப்பு</label>
               <input type="text" id="category" readonly/>
             </div>
 
             <div class="field">
-              <label>Date</label>
+              <label data-i18n="date">தேதி</label>
               <input type="date" id="date" required/>
             </div>
 
             <div class="field full">
-              <label>Material (if any)</label>
-              <input type="text" id="material" placeholder="Urea / Neem oil / Spare"/>
+              <label data-i18n="material">பொருள் (இருந்தால்)</label>
+              <input type="text" id="material" placeholder="யூரியா / நீம் எண்ணெய் / ஸ்பேர்"/>
             </div>
 
             <div class="field">
-              <label>Quantity</label>
+              <label data-i18n="quantity">அளவு</label>
               <input type="number" id="quantity" step="0.01" min="0"/>
             </div>
 
             <div class="field">
-              <label>Normal Labourers (count)</label>
+              <label data-i18n="normal_lab">சாதாரண தொழிலாளர்கள் (எண்)</label>
               <input type="number" id="normalLab" step="1" min="0"/>
             </div>
 
             <div class="field">
-              <label>Special Labourers (count)</label>
+              <label data-i18n="special_lab">சிறப்பு தொழிலாளர்கள் (எண்)</label>
               <input type="number" id="specialLab" step="1" min="0"/>
             </div>
 
             <div class="field">
-              <label>Cost</label>
+              <label data-i18n="cost">செலவு</label>
               <input type="number" id="cost" step="0.01" min="0"/>
               <small id="autoCostHint" class="muted"></small>
             </div>
           </div>
 
           <div class="field full">
-            <label>Notes</label>
-            <textarea id="notes" rows="3" placeholder="Vendor, bill no., weather, etc."></textarea>
+            <label data-i18n="notes">குறிப்புகள்</label>
+            <textarea id="notes" rows="3" placeholder="விற்பனையாளர், பில் எண், வானிலை…"></textarea>
           </div>
 
           <div class="actions">
-            <button type="submit" id="saveBtn" class="btn">Save</button>
-            <button type="button" id="resetBtn" class="btn secondary">Reset</button>
+            <button type="submit" id="saveBtn" class="btn" data-i18n="save">சேமிக்க</button>
+            <button type="button" id="resetBtn" class="btn secondary" data-i18n="reset">ரீசெட்</button>
           </div>
         </form>
       </section>
@@ -148,25 +153,31 @@
       <!-- Category Records -->
       <section id="catRecords" class="subtab">
         <div class="card filters">
-          <div class="field"><label>From</label><input type="date" id="filterFrom"/></div>
-          <div class="field"><label>To</label><input type="date" id="filterTo"/></div>
-          <div class="field full"><label>Search</label><input type="text" id="filterSearch" placeholder="material, notes"/></div>
+          <div class="field"><label data-i18n="from">இருந்து</label><input type="date" id="filterFrom"/></div>
+          <div class="field"><label data-i18n="to">வரை</label><input type="date" id="filterTo"/></div>
+          <div class="field full"><label data-i18n="search">தேடல்</label><input type="text" id="filterSearch" placeholder="பொருள், குறிப்புகள்"/></div>
         </div>
 
         <div class="table-wrap card">
           <table id="recordsTable">
             <thead>
               <tr>
-                <th>Date</th><th>Category</th><th>Field</th>
-                <th>Material</th><th>Qty</th>
-                <th>Normal</th><th>Special</th>
-                <th>Cost</th><th>Notes</th><th></th>
+                <th data-i18n="date">தேதி</th>
+                <th data-i18n="category">பகுப்பு</th>
+                <th data-i18n="field">புலம்</th>
+                <th data-i18n="material_only">பொருள்</th>
+                <th data-i18n="qty_short">அள.</th>
+                <th data-i18n="normal_short">சா. தொழி.</th>
+                <th data-i18n="special_short">சிற. தொழி.</th>
+                <th data-i18n="cost">செலவு</th>
+                <th data-i18n="notes">குறிப்புகள்</th>
+                <th></th>
               </tr>
             </thead>
             <tbody></tbody>
             <tfoot>
               <tr>
-                <td colspan="7" class="right strong">Total</td>
+                <td colspan="7" class="right strong" data-i18n="total">மொத்தம்</td>
                 <td id="tableTotal">₹0</td>
                 <td colspan="2"></td>
               </tr>
@@ -178,23 +189,23 @@
 
     <!-- GLOBAL DASHBOARD -->
     <section id="globalDash" class="tab">
-      <h2 class="section-title">Global Dashboard (All Fields)</h2>
+      <h2 class="section-title" data-i18n="global_dashboard">முழுமை டாஷ்போர்டு</h2>
       <div class="stats-grid">
         <div class="card stat gradient-green">
-          <h3>Total Cost (This Month)</h3>
+          <h3 data-i18n="total_cost_month">இந்த மாதம் — மொத்த செலவு</h3>
           <p id="gTotal" class="stat-value">₹0</p>
         </div>
         <div class="card stat gradient-cyan">
-          <h3>Entries (This Month)</h3>
+          <h3 data-i18n="entries_month">இந்த மாதம் — பதிவுகள்</h3>
           <p id="gCount" class="stat-value">0</p>
         </div>
         <div class="card stat gradient-purple">
-          <h3>Top Category</h3>
+          <h3 data-i18n="top_category">அதிகமாக செலவான பகுப்பு</h3>
           <p id="gTopCat" class="stat-value">—</p>
         </div>
       </div>
       <div class="card">
-        <h3 style="margin-top:0">By Category (This Month)</h3>
+        <h3 style="margin-top:0" data-i18n="by_category_month">இந்த மாதம் — பகுப்புகளின் படி</h3>
         <div id="gByCat" class="chips-wrap"></div>
       </div>
       <canvas id="gBar" width="980" height="260" class="card" style="margin-top:12px"></canvas>
@@ -202,22 +213,22 @@
 
     <!-- ALL RECORDS -->
     <section id="recordsAll" class="tab">
-      <h2 class="section-title">All Records</h2>
+      <h2 class="section-title" data-i18n="all_records">அனைத்து பதிவுகள்</h2>
       <div class="card filters">
-        <div class="field"><label>From</label><input type="date" id="aFrom"/></div>
-        <div class="field"><label>To</label><input type="date" id="aTo"/></div>
-        <div class="field"><label>Category</label><select id="aCat"></select></div>
-        <div class="field"><label>Field</label><select id="aField"></select></div>
-        <div class="field full"><label>Search</label><input type="text" id="aQ" placeholder="material, notes"/></div>
+        <div class="field"><label data-i18n="from">இருந்து</label><input type="date" id="aFrom"/></div>
+        <div class="field"><label data-i18n="to">வரை</label><input type="date" id="aTo"/></div>
+        <div class="field"><label data-i18n="category">பகுப்பு</label><select id="aCat"></select></div>
+        <div class="field"><label data-i18n="field">புலம்</label><select id="aField"></select></div>
+        <div class="field full"><label data-i18n="search">தேடல்</label><input type="text" id="aQ" placeholder="பொருள், குறிப்புகள்"/></div>
       </div>
       <div class="table-wrap card">
         <table id="allTable">
           <thead>
             <tr>
-              <th>Date</th><th>Category</th><th>Field</th>
-              <th>Material</th><th>Qty</th>
-              <th>Normal</th><th>Special</th>
-              <th>Cost</th><th>Notes</th>
+              <th data-i18n="date">தேதி</th><th data-i18n="category">பகுப்பு</th><th data-i18n="field">புலம்</th>
+              <th data-i18n="material_only">பொருள்</th><th data-i18n="qty_short">அள.</th>
+              <th data-i18n="normal_short">சா. தொழி.</th><th data-i18n="special_short">சிற. தொழி.</th>
+              <th data-i18n="cost">செலவு</th><th data-i18n="notes">குறிப்புகள்</th>
             </tr>
           </thead>
           <tbody></tbody>
@@ -227,56 +238,59 @@
 
     <!-- SETTINGS -->
     <section id="settings" class="tab">
-      <h2 class="section-title">Settings</h2>
+      <h2 class="section-title" data-i18n="settings">அமைப்புகள்</h2>
 
       <div class="card settings-block">
-        <h3>Fields / Areas</h3>
+        <h3 data-i18n="fields_areas">புலங்கள் / பகுதிகள்</h3>
         <div class="inline-row">
-          <input type="text" id="newFieldName" placeholder="e.g., Hill Block"/>
-          <button id="addFieldBtn" class="btn">Add Field</button>
+          <input type="text" id="newFieldName" placeholder="எ.கா., மலைப் பகுதி"/>
+          <button id="addFieldBtn" class="btn" data-i18n="add_field">புதிய புலம்</button>
         </div>
         <ul id="fieldsList" class="list-manage"></ul>
       </div>
 
       <div class="card settings-block">
-        <h3>Categories</h3>
+        <h3 data-i18n="categories">பகுப்புகள்</h3>
         <div class="inline-grid-3">
-          <input type="text" id="newCatName" placeholder="Category name (e.g., Weeding)"/>
-          <input type="text" id="newCatIcon" placeholder="Emoji icon (e.g., 🌿)"/>
+          <input type="text" id="newCatName" placeholder="எ.கா., களையை எடுப்பு"/>
+          <input type="text" id="newCatIcon" placeholder="எமோஜி (🌿)"/>
           <input type="color" id="newCatColor" value="#7dd3fc"/>
-          <button id="addCatBtn" class="btn">Add Category</button>
+          <button id="addCatBtn" class="btn" data-i18n="add_category">புதிய பகுப்பு</button>
         </div>
         <ul id="catsList" class="list-manage"></ul>
       </div>
 
       <div class="card settings-block">
-        <h3>General</h3>
+        <h3 data-i18n="general">பொது</h3>
         <div class="inline-grid-3">
           <div>
-            <label>Normal Labourer Rate (₹ / person)</label>
+            <label data-i18n="rate_normal">சாதாரண தொழிலாளர் காசு (₹ / பேர்)</label>
             <input type="number" id="rateNormal" step="1" min="0" placeholder="500"/>
           </div>
           <div>
-            <label>Special Labourer Rate (₹ / person)</label>
+            <label data-i18n="rate_special">சிறப்பு தொழிலாளர் காசு (₹ / பேர்)</label>
             <input type="number" id="rateSpecial" step="1" min="0" placeholder="700"/>
           </div>
           <div>
-            <label>Currency Symbol</label>
+            <label data-i18n="currency_symbol">நாணய குறி</label>
             <input type="text" id="settingsCurrency" maxlength="3" placeholder="₹"/>
           </div>
         </div>
         <div class="inline-row" style="margin-top:10px">
-          <button id="saveSettingsBtn" class="btn">Save</button>
+          <button id="saveSettingsBtn" class="btn" data-i18n="save">சேமிக்க</button>
         </div>
-        <p class="muted" style="margin-top:6px">Cost auto‑calculation = <strong>Normal × Normal Rate + Special × Special Rate</strong>. You can still override cost in the form.</p>
+        <p class="muted" data-i18n="calc_hint">
+          செலவு = சாதாரண × சாதாரண காசு + சிறப்பு × சிறப்பு காசு (தேவையெனில் கையால் மாற்றலாம்).
+        </p>
       </div>
     </section>
   </main>
 
   <footer>
-    <small>Made for your farm • Local-only data</small>
+    <small data-i18n="footer_note">உங்கள் பண்ணைக்கு • உள்ளூர் தரவு</small>
   </footer>
 
-  app.js</script>
+  <!-- scripts -->
+  <script src="app.js"></script>
 </body>
 </html>
