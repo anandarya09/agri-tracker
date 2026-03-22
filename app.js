@@ -1,6 +1,6 @@
 /***** Keys & storage *****/
-const LS_KEY = 'farm_records_v5';          // bumped for new schema
-const SETTINGS_KEY = 'farm_settings_v4';    // bumped for new settings
+const LS_KEY = 'farm_records_v5';       // legacy local cache (fallback only)
+const SETTINGS_KEY = 'farm_settings_v4';
 const LANG_KEY = 'farm_lang_v1';
 
 const $  = (s)=>document.querySelector(s);
@@ -22,29 +22,55 @@ const DEFAULT_CATEGORIES = [
 const DEFAULT_SETTINGS = {
   fields: [...DEFAULT_FIELDS],
   categories: [...DEFAULT_CATEGORIES],
-  rateNormal: 500,    // ₹/person
-  rateSpecial: 700,   // ₹/person
+  rateNormal: 500,
+  rateSpecial: 700,
   currency: '₹',
 };
 
 /***** State *****/
 const App = {
-  mode: 'homeTiles',       // homeTiles | fieldView | categoryView | globalDash | recordsAll | settings
+  mode: 'homeTiles',          // homeTiles | fieldView | categoryView | globalDash | recordsAll | settings
   selectedField: null,
   selectedCategory: null,
+  cloudRows: []               // <- filled by index.html (uid-filtered Firestore rows)
 };
 
-/***** Storage helpers *****/
-function loadSettings(){ try { return { ...DEFAULT_SETTINGS, ...(JSON.parse(localStorage.getItem(SETTINGS_KEY))||{}) }; } catch { return DEFAULT_SETTINGS; } }
+/***** Cloud rows listener from index.html *****/
+window.addEventListener('cloud-rows', (e) => {
+  App.cloudRows = Array.isArray(e.detail) ? e.detail : [];
+  // Re-render light-weight views (tables are rendered by index.html already)
+  if (App.mode === 'homeTiles') renderHome();
+  if (App.mode === 'globalDash') renderGlobalDash();
+  if (App.mode === 'recordsAll') renderAllRecords();
+  if (App.mode === 'categoryView') { renderCategoryDash(); /* renderTable(); ← table handled by index.html */ }
+});
+
+/***** Storage helpers (cloud-first) *****/
+function loadSettings(){
+  try { return { ...DEFAULT_SETTINGS, ...(JSON.parse(localStorage.getItem(SETTINGS_KEY))||{}) }; }
+  catch { return DEFAULT_SETTINGS; }
+}
 function saveSettings(s){ localStorage.setItem(SETTINGS_KEY, JSON.stringify(s)); }
-function loadRecords(){ try { return JSON.parse(localStorage.getItem(LS_KEY)) || []; } catch { return []; } }
-function saveRecords(r){ localStorage.setItem(LS_KEY, JSON.stringify(r)); }
+
+// Prefer cloud rows when available; fallback to legacy local cache otherwise.
+function loadRecords(){
+  if (Array.isArray(App.cloudRows) && App.cloudRows.length) {
+    return App.cloudRows.map(x => ({ id: x.id, ...x.d }));
+  }
+  try { return JSON.parse(localStorage.getItem(LS_KEY)) || []; } catch { return []; }
+}
+// Do NOT overwrite local cache when cloud is the source.
+function saveRecords(r){
+  if (!Array.isArray(App.cloudRows) || App.cloudRows.length === 0) {
+    localStorage.setItem(LS_KEY, JSON.stringify(r));
+  }
+}
 
 /***** Utils *****/
 function currency(n){ const s=loadSettings(); const v=Number(n||0); return (s.currency||'₹') + v.toFixed(2); }
 function todayISO(){ const d=new Date(); const z=d.getTimezoneOffset()*60000; return new Date(d-z).toISOString().slice(0,10); }
 function sumCost(list){ return list.reduce((s,r)=> s + (Number(r.cost)||0), 0); }
-function isThisMonth(dateStr){ if (!dateStr) return false; const ym=new Date().toISOString().slice(0,7); return dateStr.startsWith(ym); }
+function isThisMonth(dateStr){ if (!dateStr) return false; const ym=new Date().toISOString().slice(0,7); return String(dateStr).startsWith(ym); }
 function inRange(d,f,t){ if (f && d<f) return false; if (t && d>t) return false; return true; }
 function shade(hex, amt){ let c=hex.replace('#',''); if(c.length===3) c=c.split('').map(x=>x+x).join(''); const num=parseInt(c,16); let r=(num>>16)+amt,g=((num>>8)&0x00FF)+amt,b=(num&0x0000FF)+amt; r=Math.max(Math.min(255,r),0); g=Math.max(Math.min(255,g),0); b=Math.max(Math.min(255,b),0); return '#'+(b| (g<<8) | (r<<16)).toString(16).padStart(6,'0'); }
 function slug(s){ return (s||'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,''); }
@@ -68,9 +94,7 @@ const I18N = {
     add_field:'Add Field', categories:'Categories', add_category:'Add Category', general:'General',
     rate_normal:'Normal Labourer Rate (₹ / person)', rate_special:'Special Labourer Rate (₹ / person)', currency_symbol:'Currency Symbol',
     calc_hint:'Cost = Normal × Normal Rate + Special × Special Rate (editable).',
-    // dialogs
     confirm_delete:'Delete this entry?', restore_complete:'Restore complete!', restore_failed:'Restore failed: ',
-    // canvas
     report_title:'EverGreen Farm — Report',
     canvas_total:'Total (This Month)', canvas_entries:'Entries (This Month)', canvas_avg:'Avg / Entry', canvas_by_cat:'By Category (This Month)', canvas_recent:'Recent Entries'
   },
@@ -89,13 +113,11 @@ const I18N = {
     add_field:'புதிய புலம்', categories:'பகுப்புகள்', add_category:'புதிய பகுப்பு', general:'பொது',
     rate_normal:'சாதாரண தொழிலாளர் காசு (₹ / பேர்)', rate_special:'சிறப்பு தொழிலாளர் காசு (₹ / பேர்)', currency_symbol:'நாணய குறி',
     calc_hint:'செலவு = சாதாரண × சாதாரண காசு + சிறப்பு × சிறப்பு காசு (கையால் மாற்றலாம்).',
-    // dialogs
     confirm_delete:'இந்த பதிவை நீக்கவா?', restore_complete:'மீட்டெடுத்தல் முடிந்தது!', restore_failed:'மீட்டெடுக்க முடியவில்லை: ',
-    // canvas
     report_title:'EverGreen Farm — அறிக்கை',
     canvas_total:'இந்த மாதம் — மொத்த செலவு', canvas_entries:'இந்த மாதம் — பதிவுகள்', canvas_avg:'ஒரு பதிவுக்கான சராசரி', canvas_by_cat:'இந்த மாதம் — பகுப்புகள்', canvas_recent:'சமீபத்திய பதிவுகள்'
   },
-  kn: { // (kept minimal for now)
+  kn: {
     home:'ಮುಖಪುಟ', global_dashboard:'ಸಾರ್ವತ್ರಿಕ ಫಲಕ', all_records:'ಎಲ್ಲ ದಾಖಲೆಗಳು', settings:'ಸಂಯೋಜನೆಗಳು',
     fields_areas:'ಪ್ಲಾಟ್‌ಗಳು / ಪ್ರದೇಶಗಳು', fields_tip:'ಸೂಚನೆ: ಸೆಟ್ಟಿಂಗ್‌ಗಳಲ್ಲಿ ಪ್ಲಾಟ್‌ಗಳನ್ನು ಸೇರಿಸಬಹುದು/ಹೆಸರಿಸಬಹುದು.',
     back_to_fields:'← ಪ್ಲಾಟ್‌ಗಳಿಗೆ ಹಿಂದಿರುಗಿ', back_to_categories:'← ವರ್ಗಗಳಿಗೆ ಹಿಂದಿರುಗಿ',
@@ -109,7 +131,7 @@ const I18N = {
     top_category:'ಅತಿ ಹೆಚ್ಚು ವೆಚ್ಚದ ವರ್ಗ', by_category_month:'ಈ ತಿಂಗಳು — ವರ್ಗವಾರು', footer_note:'ನಿಮ್ಮ ತೋಟಕ್ಕೆ • ಸ್ಥಳೀಯ ಡೇಟಾ',
     add_field:'ಹೊಸ ಪ್ಲಾಟ್', categories:'ವರ್ಗಗಳು', add_category:'ಹೊಸ ವರ್ಗ', general:'ಸಾಮಾನ್ಯ',
     rate_normal:'ಸಾಮಾನ್ಯ ಕಾರ್ಮಿಕರ ದರ (₹ / ವ್ಯಕ್ತಿ)', rate_special:'ವಿಶೇಷ ಕಾರ್ಮಿಕರ ದರ (₹ / ವ್ಯಕ್ತಿ)', currency_symbol:'ಕರೆನ್ಸಿ ಚಿಹ್ನೆ',
-    calc_hint:'ವೆಚ್ಚ = ಸಾಮಾನ್ಯ × ದರ + ವಿಶೇಷ × ದರ (ಬदलಾಯಿಸಬಹುದು).',
+    calc_hint:'ವೆಚ್ಚ = ಸಾಮಾನ್ಯ × ದರ + ವಿಶೇಷ × ದರ (ಬದಲಾಯಿಸಬಹುದು).',
     confirm_delete:'ಈ ದಾಖಲೆಯನ್ನು ಅಳಿಸಬೇಕೆ?', restore_complete:'ಮರುಸ್ಥಾಪನೆ ಪೂರ್ಣ', restore_failed:'ಮರುಸ್ಥಾಪನೆ ವಿಫಲ: ',
     report_title:'EverGreen Farm — ವರದಿ',
     canvas_total:'ಈ ತಿಂಗಳು — ಒಟ್ಟು ವೆಚ್ಚ', canvas_entries:'ಈ ತಿಂಗಳು — ಎಂಟ್ರಿಗಳು', canvas_avg:'ಸರಾಸರಿ/ಎಂಟ್ರಿ', canvas_by_cat:'ಈ ತಿಂಗಳು — ವರ್ಗಗಳು', canvas_recent:'ಇತ್ತೀಚಿನ ದಾಖಲೆಗಳು'
@@ -119,8 +141,7 @@ function getLang(){ return localStorage.getItem(LANG_KEY) || 'ta'; }
 function setLang(l){ localStorage.setItem(LANG_KEY, l); }
 function t(k){ const lang=getLang(); return (I18N[lang] && I18N[lang][k]) || I18N.en[k] || k; }
 function applyI18n(){
-  $$('[data-i18n]').forEach(el => { const key = el.getAttribute('data-i18n'); const txt = t(key); if (txt) el.textContent = txt; });
-  // placeholders
+  $$('[data-i18n]').forEach(el => { const key = el.getAttribute('data-i18n'); const tx = t(key); if (tx) el.textContent = tx; });
   $('#material')?.setAttribute('placeholder', getLang()==='ta' ? 'யூரியா / நீம் எண்ணெய் / ஸ்பேர்' : (getLang()==='kn' ? 'ಯೂರಿಯಾ / ನೀಂ ಎಣ್ಣೆ / ಸ್ಪೇರ್' : 'Urea / Neem oil / Spare'));
   $('#aQ')?.setAttribute('placeholder', getLang()==='ta' ? 'பொருள், குறிப்புகள்' : (getLang()==='kn' ? 'ಸಾಮಗ್ರಿ, ಟಿಪ್ಪಣಿಗಳು' : 'material, notes'));
   $('#filterSearch')?.setAttribute('placeholder', getLang()==='ta' ? 'பொருள், குறிப்புகள்' : (getLang()==='kn' ? 'ಸಾಮಗ್ರಿ, ಟಿಪ್ಪಣಿಗಳು' : 'material, notes'));
@@ -132,21 +153,22 @@ $$('.tab-btn').forEach(b=>{
     switchTab(b.dataset.tab);
     if (App.mode==='homeTiles') renderHome();
     if (App.mode==='globalDash') renderGlobalDash();
-    if (App.mode==='recordsAll') renderAllRecords();
+    // if (App.mode==='recordsAll') renderAllRecords(); // ← keep: we still render this panel summary (from cloud rows)
     if (App.mode==='settings') renderSettingsPage();
+    if (App.mode==='recordsAll') renderAllRecords(); // uses loadRecords() -> cloud rows
   });
 });
 $$('.subtab-btn').forEach(b=>{
   b.addEventListener('click', ()=>{
     setSubtab(b.dataset.subtab);
     if (b.dataset.subtab==='catDash') renderCategoryDash();
-    if (b.dataset.subtab==='catRecords') renderTable();
+    // if (b.dataset.subtab==='catRecords') renderTable(); // ← table is driven by index.html Firestore listener
   });
 });
 
 /***** HOME (Fields) *****/
 function renderHome(){
-  const s=loadSettings(); const recs=loadRecords(); const wrap=$('#fieldsGrid'); wrap.innerHTML='';
+  const s=loadSettings(); const recs=loadRecords(); const wrap=$('#fieldsGrid'); if (!wrap) return; wrap.innerHTML='';
   s.fields.forEach(field=>{
     const monthRecs = recs.filter(r => (r.field||r.plot)===field && isThisMonth(r.date));
     const total = sumCost(monthRecs), cnt = monthRecs.length;
@@ -165,10 +187,10 @@ function openField(field){
   switchTab('fieldView'); renderFieldCategories();
 }
 
-$('#backToHome').addEventListener('click', ()=> switchTab('homeTiles'));
+$('#backToHome')?.addEventListener('click', ()=> switchTab('homeTiles'));
 
 function renderFieldCategories(){
-  const s=loadSettings(); const wrap=$('#categoriesGrid'); wrap.innerHTML='';
+  const s=loadSettings(); const wrap=$('#categoriesGrid'); if (!wrap) return; wrap.innerHTML='';
   s.categories.forEach(cat=>{
     const monthRecs = loadRecords().filter(r=>(r.field||r.plot)===App.selectedField && r.category===cat.name && isThisMonth(r.date));
     const sum = sumCost(monthRecs);
@@ -186,23 +208,29 @@ function openCategory(field, category){
   $('#crumbField2').textContent = field;
   $('#crumbCategory').textContent = category;
 
-  // Pre-fill Add form
-  F.id.value='';
-  $('#category').value = category;
-  $('#date').value = todayISO();
-  $('#material').value = '';
-  $('#quantity').value = '';
-  $('#normalLab').value = '';
-  $('#specialLab').value = '';
-  $('#cost').value = '';
-  $('#notes').value = '';
-  $('#autoCostHint').textContent='';
+  // Pre-fill Add form (UI only; Firestore save is in index.html)
+  const F = {
+    id: $('#entryId'),
+    date: $('#date'),
+    category: $('#category'),
+    material: $('#material'),
+    quantity: $('#quantity'),
+    normalLab: $('#normalLab'),
+    specialLab: $('#specialLab'),
+    cost: $('#cost'),
+    notes: $('#notes'),
+  };
+  F.id.value=''; F.date.value=todayISO(); F.category.value=category;
+  F.material.value=''; F.quantity.value='';
+  F.normalLab.value=''; F.specialLab.value='';
+  F.cost.value=''; F.notes.value=''; $('#autoCostHint').textContent='';
 
   switchTab('categoryView'); setSubtab('catDash');
-  renderCategoryDash();
+  renderCategoryDash();           // stats from cloud rows
+  // Do NOT call renderTable(); Firestore fills the table.
 }
 
-$('#backToField').addEventListener('click', ()=> { setSubtab('catDash'); switchTab('fieldView'); renderFieldCategories(); });
+$('#backToField')?.addEventListener('click', () => { setSubtab('catDash'); switchTab('fieldView'); renderFieldCategories(); });
 
 function renderCategoryDash(){
   const list = contextRecords(true); // field+category
@@ -214,7 +242,7 @@ function renderCategoryDash(){
   drawCategoryBar(month);
 }
 
-/***** FORM (Category Add) *****/
+/***** FORM helpers (cost hint only; save handled by Firestore script) *****/
 const F = {
   id: $('#entryId'),
   date: $('#date'),
@@ -226,108 +254,27 @@ const F = {
   cost: $('#cost'),
   notes: $('#notes'),
 };
-$('#resetBtn').addEventListener('click', ()=>{
+$('#resetBtn')?.addEventListener('click', ()=>{
   F.id.value=''; F.date.value=todayISO(); F.material.value=''; F.quantity.value='';
   F.normalLab.value=''; F.specialLab.value=''; F.cost.value=''; F.notes.value=''; $('#autoCostHint').textContent='';
 });
-
 ['input','change'].forEach(ev=>{
-  F.normalLab.addEventListener(ev, autoCostFromCounts);
-  F.specialLab.addEventListener(ev, autoCostFromCounts);
+  F.normalLab?.addEventListener(ev, autoCostFromCounts);
+  F.specialLab?.addEventListener(ev, autoCostFromCounts);
 });
 function autoCostFromCounts(){
   const s=loadSettings();
-  const n = Number(F.normalLab.value||0);
-  const sp = Number(F.specialLab.value||0);
+  const n = Number(F.normalLab?.value||0);
+  const sp = Number(F.specialLab?.value||0);
   const calc = n*(s.rateNormal||0) + sp*(s.rateSpecial||0);
   const hint = `${t('cost')} = ${t('normal_short')}(${n})×${s.currency}${s.rateNormal||0} + ${t('special_short')}(${sp})×${s.currency}${s.rateSpecial||0} = ${currency(calc)}`;
   $('#autoCostHint').textContent = hint;
-  if (!F.cost.value) F.cost.value = calc.toFixed(2);
+  if (F.cost && !F.cost.value) F.cost.value = calc.toFixed(2);
 }
 
-$('#entryForm').addEventListener('submit', (e)=>{
-  e.preventDefault();
-  const rec = {
-    id: F.id.value || (crypto.randomUUID ? crypto.randomUUID() : String(Date.now())),
-    date: F.date.value,
-    field: App.selectedField, plot: App.selectedField, // compatibility
-    category: F.category.value,
-    activity: '', // removed
-    material: F.material.value.trim(),
-    quantity: parseFloat(F.quantity.value||0),
-    unit: '',
-    laborers: parseInt((Number(F.normalLab.value||0) + Number(F.specialLab.value||0)) || 0), // compatibility total
-    normalLab: parseInt(F.normalLab.value||0),
-    specialLab: parseInt(F.specialLab.value||0),
-    hours: 0,
-    cost: parseFloat(F.cost.value||0),
-    notes: F.notes.value.trim(),
-    createdAt: Date.now(),
-  };
-  if (!rec.date || !rec.field || !rec.category){ alert(t('date')+' / '+t('field')+' / '+t('category')+' ?'); return; }
-  const list=loadRecords(); const idx=list.findIndex(r=>r.id===rec.id); if(idx>=0) list[idx]=rec; else list.push(rec);
-  saveRecords(list);
-  renderCategoryDash(); renderTable();
-  $('#resetBtn').click(); setSubtab('catRecords');
-});
-
-/***** CATEGORY TABLE *****/
+/***** CATEGORY TABLE (UI-only filters; rows are rendered by Firestore in index.html) *****/
 const filter = { from: $('#filterFrom'), to: $('#filterTo'), search: $('#filterSearch') };
-[filter.from, filter.to, filter.search].forEach(el => el.addEventListener('input', renderTable));
-
-function renderTable(){
-  const tbody = $('#recordsTable tbody'); tbody.innerHTML='';
-  let list = contextRecords(true);
-  list = list.filter(r=>{
-    const okDate = inRange(r.date||'', filter.from.value||'', filter.to.value||'');
-    const q=(filter.search.value||'').toLowerCase(); const hay=[r.material,r.notes].join(' ').toLowerCase();
-    return okDate && (!q || hay.includes(q));
-  });
-  list.sort((a,b)=>(b.date||'').localeCompare(a.date||'') || b.createdAt-a.createdAt);
-
-  let total = 0;
-  list.forEach(r=>{
-    total += (r.cost||0);
-    const tr=document.createElement('tr');
-    tr.innerHTML = `
-      <td>${r.date||''}</td>
-      <td>${r.category||''}</td>
-      <td>${r.field||r.plot||''}</td>
-      <td>${r.material||''}</td>
-      <td>${r.quantity||''}</td>
-      <td>${r.normalLab!=null ? r.normalLab : (r.laborers||'')}</td>
-      <td>${r.specialLab!=null ? r.specialLab : ''}</td>
-      <td>${r.cost!=null ? currency(r.cost): ''}</td>
-      <td>${r.notes||''}</td>
-      <td class="row-actions">
-        <button class="secondary small" data-action="edit" data-id="${r.id}">${getLang()==='ta'?'திருத்து':(getLang()==='kn'?'ತಿದ್ದು':'Edit')}</button>
-        <button class="danger small" data-action="del" data-id="${r.id}">${getLang()==='ta'?'நீக்கு':(getLang()==='kn'?'ಅಳಿಸು':'DEL')}</button>
-      </td>`;
-    tbody.appendChild(tr);
-  });
-  $('#tableTotal').textContent = currency(total);
-
-  // actions
-  tbody.querySelectorAll('button').forEach(btn=>{
-    btn.addEventListener('click', ()=>{
-      const id = btn.dataset.id; let list=loadRecords(); const idx=list.findIndex(r=>r.id===id); if (idx<0) return;
-      const r=list[idx];
-      if (btn.dataset.action==='edit'){
-        F.id.value=r.id; F.date.value=r.date||todayISO(); F.category.value=r.category||App.selectedCategory;
-        F.material.value=r.material||''; F.quantity.value=r.quantity||'';
-        F.normalLab.value = (r.normalLab!=null)? r.normalLab : (r.laborers||0);
-        F.specialLab.value = (r.specialLab!=null)? r.specialLab : 0;
-        F.cost.value=r.cost||''; F.notes.value=r.notes||'';
-        $('#autoCostHint').textContent=''; $('#saveBtn').textContent=t('save');
-        setSubtab('catAdd');
-      } else if (btn.dataset.action==='del'){
-        if (confirm(t('confirm_delete'))){
-          list.splice(idx,1); saveRecords(list); renderCategoryDash(); renderTable();
-        }
-      }
-    });
-  });
-}
+[filter.from, filter.to, filter.search].forEach(el => el?.addEventListener('input', ()=>{ /* Firestore table already drawn */ }));
 
 /***** GLOBAL DASH *****/
 function renderGlobalDash(){
@@ -336,7 +283,7 @@ function renderGlobalDash(){
   $('#gCount').textContent = String(list.length);
 
   const s=loadSettings(); const byCat={}; list.forEach(r=> byCat[r.category]=(byCat[r.category]||0)+(r.cost||0));
-  const wrap=$('#gByCat'); wrap.innerHTML=''; const sorted=Object.entries(byCat).sort((a,b)=>b[1]-a[1]);
+  const wrap=$('#gByCat'); if (!wrap) return; wrap.innerHTML=''; const sorted=Object.entries(byCat).sort((a,b)=>b[1]-a[1]);
   $('#gTopCat').textContent = sorted[0]? `${sorted[0][0]} (${currency(sorted[0][1])})` : '—';
   sorted.forEach(([k,v])=>{
     const cat=s.categories.find(c=>c.name===k)||{color:'#2a3b66'};
@@ -347,37 +294,15 @@ function renderGlobalDash(){
   drawGlobalBar(byCat, s);
 }
 
-/***** ALL RECORDS *****/
+/***** ALL RECORDS (panel only; table rows are drawn by index.html) *****/
 function renderAllRecords(){
   const s=loadSettings(); const selCat=$('#aCat'), selField=$('#aField');
-  selCat.innerHTML = `<option value="">${getLang()==='ta'?'அனைத்தும்':(getLang()==='kn'?'ಎಲ್ಲ':'All')}</option>${s.categories.map(c=>`<option>${c.name}</option>`).join('')}`;
-  selField.innerHTML = `<option value="">${getLang()==='ta'?'அனைத்தும்':(getLang()==='kn'?'ಎಲ್ಲ':'All')}</option>${s.fields.map(f=>`<option>${f}</option>`).join('')}`;
+  if (!selCat || !selField) return;
+  selCat.innerHTML  = `<option value="">${getLang()==='ta'?'அனைத்தும்':(getLang()==='kn'?'ಎಲ್ಲ':'All')}</option>${s.categories.map(c=>`<option>${c.name}</option>`).join('')}`;
+  selField.innerHTML= `<option value="">${getLang()==='ta'?'அனைத்தும்':(getLang()==='kn'?'ಎಲ್ಲ':'All')}</option>${s.fields.map(f=>`<option>${f}</option>`).join('')}`;
   const f=$('#aFrom'), t2=$('#aTo'), c=$('#aCat'), fld=$('#aField'), q=$('#aQ');
-  [f,t2,c,fld,q].forEach(el=> el.addEventListener('input', renderAllRecords));
-
-  const tbody=$('#allTable tbody'); tbody.innerHTML='';
-  let list=loadRecords();
-  list=list.filter(r=>{
-    const okDate=inRange(r.date||'', f.value||'', t2.value||'');
-    const okCat=!c.value || r.category===c.value;
-    const okField=!fld.value || (r.field||r.plot)===fld.value;
-    const text=(q.value||'').toLowerCase(); const hay=[r.material,r.notes,(r.field||r.plot),r.category].join(' ').toLowerCase();
-    return okDate && okCat && okField && (!text || hay.includes(text));
-  });
-  list.sort((a,b)=>(b.date||'').localeCompare(a.date||'') || b.createdAt-a.createdAt);
-  list.forEach(r=>{
-    const tr=document.createElement('tr'); tr.innerHTML=`
-      <td>${r.date||''}</td>
-      <td>${r.category||''}</td>
-      <td>${r.field||r.plot||''}</td>
-      <td>${r.material||''}</td>
-      <td>${r.quantity||''}</td>
-      <td>${r.normalLab!=null ? r.normalLab : (r.laborers||'')}</td>
-      <td>${r.specialLab!=null ? r.specialLab : ''}</td>
-      <td>${r.cost!=null ? currency(r.cost):''}</td>
-      <td>${r.notes||''}</td>`;
-    tbody.appendChild(tr);
-  });
+  [f,t2,c,fld,q].forEach(el=> el?.addEventListener('input', renderAllRecords));
+  // The actual table body is maintained by Firestore listener in index.html
 }
 
 /***** SETTINGS *****/
@@ -385,7 +310,7 @@ function renderSettingsPage(){
   const s=loadSettings(); applyI18n();
 
   // fields
-  const ul=$('#fieldsList'); ul.innerHTML='';
+  const ul=$('#fieldsList'); if (!ul) return; ul.innerHTML='';
   s.fields.forEach((name,idx)=>{
     const li=document.createElement('li'); li.innerHTML=`
       <span class="badge">${t('field')}</span>
@@ -418,16 +343,16 @@ function renderSettingsPage(){
   $('#settingsCurrency').value = s.currency || '₹';
 }
 
-$('#addFieldBtn').addEventListener('click', ()=>{
+$('#addFieldBtn')?.addEventListener('click', ()=>{
   const s=loadSettings(); const v=($('#newFieldName').value||'').trim(); if (!v) return;
   s.fields.push(v); saveSettings(s); $('#newFieldName').value=''; renderSettingsPage(); renderHome();
 });
-$('#addCatBtn').addEventListener('click', ()=>{
+$('#addCatBtn')?.addEventListener('click', ()=>{
   const s=loadSettings(); const name=($('#newCatName').value||'').trim(); const icon=$('#newCatIcon').value||'•'; const color=$('#newCatColor').value||'#7dd3fc';
   if (!name) return; s.categories.push({name,icon,color}); saveSettings(s);
   $('#newCatName').value=''; $('#newCatIcon').value=''; renderSettingsPage(); renderFieldCategories(); renderGlobalDash();
 });
-$('#saveSettingsBtn').addEventListener('click', ()=>{
+$('#saveSettingsBtn')?.addEventListener('click', ()=>{
   const s=loadSettings();
   s.rateNormal = Number($('#rateNormal').value||0);
   s.rateSpecial = Number($('#rateSpecial').value||0);
@@ -443,9 +368,14 @@ function toCSV(records){
   return lines.join('\n');
 }
 function download(filename, content, type='text/plain'){ const blob=new Blob([content],{type}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download=filename; a.click(); URL.revokeObjectURL(url); }
-$('#exportCsvBtn').addEventListener('click', ()=>{ const ctx=contextLabel(); const list=contextRecords(); download(`farm-records-${ctx}-${new Date().toISOString().slice(0,10)}.csv`, toCSV(list), 'text/csv'); });
-$('#exportJsonBtn').addEventListener('click', ()=> download(`farm-backup-${new Date().toISOString().slice(0,10)}.json`, JSON.stringify(loadRecords(),null,2),'application/json'));
-$('#importJsonInput').addEventListener('change', async (e)=>{
+$('#exportCsvBtn')?.addEventListener('click', ()=>{
+  const ctx=contextLabel();
+  const list=contextRecords();           // uses cloud rows if available
+  download(`farm-records-${ctx}-${new Date().toISOString().slice(0,10)}.csv`, toCSV(list), 'text/csv');
+});
+$('#exportJsonBtn')?.addEventListener('click', ()=> download(`farm-backup-${new Date().toISOString().slice(0,10)}.json`, JSON.stringify(loadRecords(),null,2),'application/json'));
+$('#importJsonInput')?.addEventListener('change', async (e)=>{
+  // When cloud is active, better to import via Firestore on the page, but keep legacy local import:
   const f=e.target.files?.[0]; if(!f) return; const text=await f.text();
   try{
     const data=JSON.parse(text); if(!Array.isArray(data)) throw new Error('Invalid backup file');
@@ -453,13 +383,13 @@ $('#importJsonInput').addEventListener('change', async (e)=>{
     data.forEach(r=>{ const id=r.id||(crypto.randomUUID?crypto.randomUUID():String(Date.now()+Math.random())); map.set(id,{...map.get(r.id),...r,id}); });
     saveRecords(Array.from(map.values()));
     alert(t('restore_complete'));
-    renderHome(); renderGlobalDash(); if(App.mode==='categoryView'){ renderCategoryDash(); renderTable(); } if(App.mode==='recordsAll') renderAllRecords();
+    renderHome(); renderGlobalDash(); if(App.mode==='categoryView'){ renderCategoryDash(); /* table by Firestore */ } if(App.mode==='recordsAll') renderAllRecords();
   }catch(err){ alert(t('restore_failed') + err.message); }
   finally{ e.target.value=''; }
 });
 
 /***** Report PNG (Canvas) *****/
-$('#downloadPngBtn').addEventListener('click', ()=>{
+$('#downloadPngBtn')?.addEventListener('click', ()=>{
   const s=loadSettings(); const list=contextRecords();
   const ctxName=contextLabel(true);
   const W=1100,H=700; const c=document.createElement('canvas'); c.width=W; c.height=H; const g=c.getContext('2d');
@@ -489,7 +419,7 @@ function roundRect(g,x,y,w,h,r,fill,stroke){ g.beginPath(); g.moveTo(x+r,y); g.a
 
 /***** Charts in page *****/
 function drawCategoryBar(list){
-  const c=$('#catBar'); const g=c.getContext('2d'); g.clearRect(0,0,c.width,c.height);
+  const c=$('#catBar'); if (!c) return; const g=c.getContext('2d'); g.clearRect(0,0,c.width,c.height);
   const map=new Map(); list.forEach(r=>{ if(r.date) map.set(r.date,(map.get(r.date)||0)+(r.cost||0)); });
   const labels=Array.from(map.keys()).sort(); const values=labels.map(k=>map.get(k));
   g.fillStyle='rgba(255,255,255,.06)'; g.fillRect(0,0,c.width,c.height);
@@ -498,7 +428,7 @@ function drawCategoryBar(list){
   values.forEach((v,i)=>{ const bh=(H-2*pad)*v/max; g.fillStyle='#7cc8ff'; g.fillRect(pad+i*bw+8, H-pad-bh, bw-16, bh); });
 }
 function drawGlobalBar(byCat, settings){
-  const c=$('#gBar'); const g=c.getContext('2d'); g.clearRect(0,0,c.width,c.height);
+  const c=$('#gBar'); if (!c) return; const g=c.getContext('2d'); g.clearRect(0,0,c.width,c.height);
   const labels=Object.keys(byCat); const values=labels.map(k=>byCat[k]); const pad=50,W=c.width,H=c.height,bw=(W-2*pad)/Math.max(values.length,1),max=Math.max(...values,10);
   g.fillStyle='#cfe0ff'; g.font='bold 14px system-ui'; g.fillText(t('by_category_month'),12,22);
   values.forEach((v,i)=>{ const cat=settings.categories.find(c=>c.name===labels[i])||{color:'#7dd3fc'}; const bh=(H-2*pad)*v/max; g.fillStyle=cat.color; g.fillRect(pad+i*bw+10, H-pad-bh, bw-20, bh); g.fillStyle='#a9b2c7'; g.font='12px system-ui'; g.fillText(labels[i]||'', pad+i*bw+10, H-pad+14); });
@@ -506,10 +436,11 @@ function drawGlobalBar(byCat, settings){
 
 /***** Context helpers *****/
 function contextRecords(strict=false){
+  const all = loadRecords();
   if (strict && App.selectedField && App.selectedCategory){
-    return loadRecords().filter(r => (r.field||r.plot)===App.selectedField && r.category===App.selectedCategory);
+    return all.filter(r => (r.field||r.plot)===App.selectedField && r.category===App.selectedCategory);
   }
-  return loadRecords();
+  return all;
 }
 function contextLabel(short=false){
   if (App.mode==='categoryView' && App.selectedField && App.selectedCategory) return short?`${App.selectedField}-${App.selectedCategory}`:`${App.selectedField} / ${App.selectedCategory}`;
@@ -518,11 +449,14 @@ function contextLabel(short=false){
 }
 
 /***** Language select *****/
-const langSelect=$('#langSelect'); langSelect.value=getLang(); langSelect.addEventListener('change',()=>{ setLang(langSelect.value); applyI18n(); renderHome(); renderFieldCategories(); renderCategoryDash(); renderTable(); renderGlobalDash(); renderAllRecords(); });
+const langSelect=$('#langSelect'); if (langSelect){
+  langSelect.value=getLang();
+  langSelect.addEventListener('change',()=>{ setLang(langSelect.value); applyI18n(); renderHome(); renderFieldCategories(); renderCategoryDash(); renderGlobalDash(); renderAllRecords(); });
+}
 
 /***** Init *****/
 (function init(){
   if (!localStorage.getItem(SETTINGS_KEY)) saveSettings(DEFAULT_SETTINGS);
   applyI18n();
-  renderHome(); renderGlobalDash(); renderAllRecords();
+  renderHome(); renderGlobalDash(); renderAllRecords(); // tables themselves are filled by uid-filtered Firestore
 })();
