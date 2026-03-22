@@ -315,6 +315,35 @@
   // Init once
   const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
   const db  = getFirestore(app);
+  <script type="module">
+  // ... your existing imports and init ...
+  const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
+  const db  = getFirestore(app);
+
+  // --- Auto-sync the Category input with the crumb label ---
+  const catInput    = document.getElementById('category');
+  const crumbCatEl  = document.getElementById('crumbCategory');
+  if (catInput && crumbCatEl) {
+    const syncCat = () => {
+      const v = (crumbCatEl.textContent || '').trim();
+      if (v && catInput.value !== v) catInput.value = v;
+    };
+    // set now
+    syncCat();
+    // set on crumb text change (when you click tiles/tabs)
+    const obs = new MutationObserver(syncCat);
+    obs.observe(crumbCatEl, { childList: true, characterData: true, subtree: true });
+    // also set when the Add Entry subtab is opened (in case your tab code swaps views)
+    document.addEventListener('click', (e) => {
+      const t = e.target;
+      if (t && t.matches?.('.subtab-btn[data-subtab="catAdd"]')) {
+        setTimeout(syncCat, 50);
+      }
+    });
+  }
+
+  // (rest of your Firebase save/list code stays as we already added)
+</script>
   window._db = db; // optional for console tests
 
   // ---------- Helpers ----------
