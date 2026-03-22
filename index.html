@@ -394,7 +394,7 @@
   window._db = db;
 
   /* -------------------- DOM helpers -------------------- */
-  const $   = (id) => document.getElementById(id);
+  const $ = (id) => document.getElementById(id);
   const val = (id) => ($(id)?.value ?? '').trim();
   const txt = (id) => ($(id)?.textContent ?? '').trim();
   const num = (id) => Number(val(id) || 0);
@@ -432,7 +432,7 @@
   const btnVerifyOtp  = $('btnVerifyOtp');
   const btnVerifyLink = $('btnVerifyLink');
   const btnLinkMode   = $('btnLinkMode');
-  let linkMode = false; // when true → verify will link phone to current user
+  let linkMode = false;
 
   /* -------------------- Simple modal & tab toggles -------------------- */
   function show(el){ if(el) el.style.display='flex'; }
@@ -446,7 +446,6 @@
 
   function toEmail(){ showBlock(formEmail); hideBlock(formPhone); tabEmail?.classList.remove('secondary'); tabPhone?.classList.add('secondary'); }
   function toPhone(){ hideBlock(formEmail); showBlock(formPhone); tabPhone?.classList.remove('secondary'); tabEmail?.classList.add('secondary'); }
-
   tabEmail?.addEventListener('click', () => { toEmail(); });
   tabPhone?.addEventListener('click', () => { toPhone(); });
 
@@ -462,11 +461,11 @@
   formEmail?.addEventListener('submit', async (e) => {
     e.preventDefault();
     clearAuthErrors();
-    const email = val('authEmail');
-    const pass  = val('authPassword');
+    const email = ($('#authEmail')?.value ?? '').trim();
+    const pass  = ($('#authPassword')?.value ?? '').trim();
     try {
       if (btnDoLogin.dataset.mode === 'signup') {
-        const pass2 = val('authConfirm');
+        const pass2 = ($('#authConfirm')?.value ?? '').trim();
         if (pass !== pass2) { authErrEmail.textContent='Passwords do not match'; return; }
         await createUserWithEmailAndPassword(auth, email, pass);
       } else {
@@ -483,7 +482,6 @@
   btnLogout?.addEventListener('click', async () => { await signOut(auth); });
 
   /* -------------------- Phone (OTP) auth & linking -------------------- */
-  // E.164 for India: ensure +91 prefix if user types 9XXXXXXXXX
   function normalizePhone(raw) {
     let p = (raw || '').replace(/\s+/g, '');
     if (p.startsWith('+')) return p;
@@ -492,7 +490,6 @@
     return p;
   }
 
-  // Setup Invisible reCAPTCHA (once)
   let recaptchaVerifier, confirmationResult;
   function initRecaptcha() {
     if (recaptchaVerifier) return recaptchaVerifier;
@@ -526,12 +523,10 @@
     if (!code) { authErrPhone.textContent='Enter the 6 digit code'; return; }
     try {
       if (linkMode && auth.currentUser) {
-        // Link phone to existing email/password user
         const cred = PhoneAuthProvider.credential(confirmationResult.verificationId, code);
         await linkWithCredential(auth.currentUser, cred);
         alert('Phone linked to your account ✅');
       } else {
-        // Sign in with phone
         await confirmationResult.confirm(code);
       }
       hide(authModal);
@@ -542,7 +537,6 @@
       authErrPhone.textContent = err.message || 'OTP verification failed';
     }
   }
-
   btnVerifyOtp?.addEventListener('click', verifyOtpAndSignOrLink);
   btnVerifyLink?.addEventListener('click', verifyOtpAndSignOrLink);
 
@@ -559,8 +553,6 @@
   document.addEventListener('click', updatePhoneButtons);
 
   /* -------------------- Firestore list & save -------------------- */
-
-  // define enableForm ONCE
   function enableForm(enable){
     if (!entryForm) return;
     [...entryForm.elements].forEach(el => el.disabled = !enable);
@@ -589,7 +581,6 @@
     const user = auth.currentUser;
     if (!user) { alert('Please sign in first.'); return; }
 
-    // Default date if empty
     const dateInput = $('date');
     if (dateInput && !dateInput.value) dateInput.value = new Date().toISOString().slice(0,10);
 
@@ -637,13 +628,26 @@
   let unsubscribe = null;
   function startListener(uid) {
     if (unsubscribe) { unsubscribe(); unsubscribe=null; }
-    const qExp = query(collection(db, 'expenses'), where('uid','==', uid), orderBy('date','desc'));
+    if (!uid) return;
+
+    const qExp = query(
+      collection(db, 'expenses'),
+      where('uid','==', uid),
+      orderBy('date','desc')
+    );
+
     unsubscribe = onSnapshot(qExp, (snap) => {
       const rows = snap.docs.map(x => ({ id: x.id, d: x.data() }));
+
+      // 👉 broadcast rows for app.js (home/global/recordsAll)
+      window.dispatchEvent(new CustomEvent('cloud-rows', { detail: rows }));
+
       const currentCat = val('category') || txt('crumbCategory');
       const filtered   = currentCat ? rows.filter(r => r.d.category === currentCat) : rows;
+
+      // Category Records + All Records tables (uid-filtered)
       renderRows(catTbody, filtered, {updateTotal:true});
-      renderRows(allTbody, rows, {updateTotal:false});
+      renderRows(allTbody, rows,     {updateTotal:false});
     }, (err) => {
       console.error('onSnapshot error:', err);
       // If "FAILED_PRECONDITION: The query requires an index", click the console link to auto-create it.
@@ -718,7 +722,11 @@
       enableForm(false);
       if (unsubscribe) { unsubscribe(); unsubscribe=null; }
       if (catTbody) catTbody.innerHTML=''; if (allTbody) allTbody.innerHTML='';
+
+      // 👉 clear rows for app.js views (home/global/recordsAll)
+      window.dispatchEvent(new CustomEvent('cloud-rows', { detail: [] }));
     }
+
     // keep phone verify buttons in the correct mode
     (function updatePhoneButtons(){
       if (!btnVerifyOtp || !btnVerifyLink) return;
