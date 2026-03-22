@@ -291,7 +291,7 @@
   </footer>
 
   <!-- scripts -->
-<script src="app.js"></script>
+script src="app.js"></script>
 
 <!-- Firebase + Firestore (Modular v12) -->
 <script type="module">
@@ -302,7 +302,7 @@
     query, orderBy, onSnapshot, serverTimestamp
   } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
 
-  // --- Your Firebase config (from console) ---
+  // --- Your Firebase config ---
   const firebaseConfig = {
     apiKey: "AIzaSyDhhXdXlQ3aZBnm3chI21b2Ot25iem99Yk",
     authDomain: "agritracker-cardamon.firebaseapp.com",
@@ -312,34 +312,35 @@
     appId: "1:690552538133:web:ad11484e35527bf417fa1c"
   };
 
-  // Initialize once
+  // Init once
   const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
   const db  = getFirestore(app);
-  window._db = db; // for quick console tests
+  window._db = db; // optional for console tests
+
+  // ---- Helpers ----
+  const val = (id) => (document.getElementById(id)?.value ?? '').trim();
+  const txt = (id) => (document.getElementById(id)?.textContent ?? '').trim();
+  const num = (id) => Number(val(id) || 0);
 
   // ---------- SAVE / UPDATE ----------
   const entryForm = document.getElementById('entryForm');
-  const getVal = id => (document.getElementById(id)?.value ?? '').trim();
-  const getNum = id => Number(getVal(id) || 0);
-  const getTxt = id => (document.getElementById(id)?.textContent ?? '').trim();
-
   if (entryForm) {
     entryForm.addEventListener('submit', async (e) => {
       e.preventDefault();
 
-      // pick category from readonly input or crumb label
-      const category = getVal('category') || getTxt('crumbCategory') || getTxt('category');
+      // category from readonly input or crumb
+      const category = val('category') || txt('crumbCategory');
 
       const payload = {
-        date: getVal('date'),
+        date: val('date'),
         category,
-        field: getTxt('crumbField2') || getTxt('fieldNameLabel') || getTxt('crumbField'),
-        material: getVal('material'),
-        quantity: getNum('quantity'),
-        normalLab: getNum('normalLab'),
-        specialLab: getNum('specialLab'),
-        cost: getNum('cost'),
-        notes: getVal('notes'),
+        field: txt('crumbField2') || txt('fieldNameLabel') || txt('crumbField'),
+        material: val('material'),
+        quantity: num('quantity'),
+        normalLab: num('normalLab'),
+        specialLab: num('specialLab'),
+        cost: num('cost'),
+        notes: val('notes'),
         updatedAt: serverTimestamp()
       };
 
@@ -365,11 +366,11 @@
         if (idEl) idEl.value = '';
       } catch (err) {
         console.error('Save error:', err);
-        alert('Save failed. Open Console (F12) for details.');
+        alert('Save failed. See Console (F12) for details.');
       }
     });
 
-    // Reset button clears hidden id
+    // Reset clears hidden id
     const resetBtn = document.getElementById('resetBtn');
     if (resetBtn) {
       resetBtn.addEventListener('click', () => {
@@ -441,19 +442,35 @@
     });
   }
 
-  // Live query for all expenses
+  // Single live query for all expenses (most recent first)
   const q = query(collection(db, 'expenses'), orderBy('date', 'desc'));
   onSnapshot(q, (snap) => {
     const rows = snap.docs.map(x => ({ id: x.id, d: x.data() }));
 
-    // Category Records: filter to current category if available
-    const currentCat = getVal('category') || getTxt('crumbCategory');
+    const currentCat = val('category') || txt('crumbCategory');
     const filtered   = currentCat ? rows.filter(r => r.d.category === currentCat) : rows;
     renderRows(catTbody, filtered, {updateTotal:true});
 
-    // All Records: show everything
     renderRows(allTbody, rows, {updateTotal:false});
   }, (err) => console.error('onSnapshot error:', err));
+
+  // ---- Quick test button (optional) ----
+  // Adds a visible button at the very end of the page for testing
+  const testBtn = document.createElement('button');
+  testBtn.textContent = 'Add Test Expense (Cloud)';
+  testBtn.className = 'btn small';
+  testBtn.style = 'position:fixed;bottom:14px;right:14px;z-index:9999;';
+  testBtn.addEventListener('click', async () => {
+    await addDoc(collection(db, 'expenses'), {
+      date: new Date().toISOString().slice(0,10),
+      category: 'Test',
+      cost: 1,
+      notes: 'Quick cloud test',
+      createdAt: serverTimestamp()
+    });
+    alert('Test doc added ✅ — check Firestore now.');
+  });
+  document.body.appendChild(testBtn);
 </script>
 </body>
 </html>
