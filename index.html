@@ -290,7 +290,7 @@
     <small data-i18n="footer_note">உங்கள் பண்ணைக்கு • உள்ளூர் தரவு</small>
   </footer>
 
-  <!-- scripts -->
+ <!-- scripts -->
 <script src="app.js"></script>
 
 <!-- Firebase + Firestore (Modular v12) -->
@@ -302,7 +302,7 @@
     query, orderBy, onSnapshot, serverTimestamp
   } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
 
-  // --- Your Firebase config (ok to keep client-side) ---
+  // --- Your Firebase config ---
   const firebaseConfig = {
     apiKey: "AIzaSyDhhXdXlQ3aZBnm3chI21b2Ot25iem99Yk",
     authDomain: "agritracker-cardamon.firebaseapp.com",
@@ -315,36 +315,31 @@
   // Init once
   const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
   const db  = getFirestore(app);
-  <script type="module">
-  // ... your existing imports and init ...
-  const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
-  const db  = getFirestore(app);
+  window._db = db; // for quick console tests (optional)
 
-  // --- Auto-sync the Category input with the crumb label ---
-  const catInput    = document.getElementById('category');
-  const crumbCatEl  = document.getElementById('crumbCategory');
-  if (catInput && crumbCatEl) {
+  // ---------- Auto‑sync the readonly Category input with the crumb label ----------
+  (() => {
+    const catInput   = document.getElementById('category');
+    const crumbCatEl = document.getElementById('crumbCategory');
+    if (!catInput || !crumbCatEl) return;
+
     const syncCat = () => {
       const v = (crumbCatEl.textContent || '').trim();
       if (v && catInput.value !== v) catInput.value = v;
     };
-    // set now
     syncCat();
-    // set on crumb text change (when you click tiles/tabs)
+
     const obs = new MutationObserver(syncCat);
     obs.observe(crumbCatEl, { childList: true, characterData: true, subtree: true });
-    // also set when the Add Entry subtab is opened (in case your tab code swaps views)
+
+    // When "Add Entry" subtab is opened
     document.addEventListener('click', (e) => {
       const t = e.target;
       if (t && t.matches?.('.subtab-btn[data-subtab="catAdd"]')) {
         setTimeout(syncCat, 50);
       }
     });
-  }
-
-  // (rest of your Firebase save/list code stays as we already added)
-</script>
-  window._db = db; // optional for console tests
+  })();
 
   // ---------- Helpers ----------
   const val = (id) => (document.getElementById(id)?.value ?? '').trim();
@@ -357,12 +352,9 @@
     entryForm.addEventListener('submit', async (e) => {
       e.preventDefault();
 
-      // category from readonly input or crumb
-      const category = val('category') || txt('crumbCategory');
-
       const payload = {
         date: val('date'),
-        category,
+        category: val('category') || txt('crumbCategory'),
         field: txt('crumbField2') || txt('fieldNameLabel') || txt('crumbField'),
         material: val('material'),
         quantity: num('quantity'),
@@ -379,7 +371,7 @@
       }
 
       const idEl = document.getElementById('entryId');
-      const id   = idEl ? idEl.value : '';
+      const id   = idEl?.value || '';
 
       try {
         if (id) {
@@ -388,7 +380,7 @@
         } else {
           payload.createdAt = serverTimestamp();
           const ref = await addDoc(collection(db, 'expenses'), payload);
-          if (idEl) idEl.value = ref.id;  // keep ID in case you edit immediately
+          if (idEl) idEl.value = ref.id; // so you can edit immediately if needed
           alert('Saved ✅');
         }
         entryForm.reset();
@@ -445,7 +437,7 @@
       if (totalCell) totalCell.textContent = `₹${total.toLocaleString('en-IN')}`;
     }
 
-    // Edit
+    // Edit action
     tbody.querySelectorAll('[data-edit]').forEach(btn => {
       btn.addEventListener('click', async () => {
         try {
@@ -461,7 +453,7 @@
       });
     });
 
-    // Delete
+    // Delete action
     tbody.querySelectorAll('[data-del]').forEach(btn => {
       btn.addEventListener('click', async () => {
         if (!confirm('Delete this entry?')) return;
@@ -476,11 +468,16 @@
   onSnapshot(q, (snap) => {
     const rows = snap.docs.map(x => ({ id: x.id, d: x.data() }));
 
+    // Category Records view (if a category is active)
     const currentCat = val('category') || txt('crumbCategory');
     const filtered   = currentCat ? rows.filter(r => r.d.category === currentCat) : rows;
-    renderRows(catTbody, filtered, {updateTotal:true});   // Category Records
-    renderRows(allTbody, rows, {updateTotal:false});      // All Records
+    renderRows(catTbody, filtered, {updateTotal:true});
+
+    // All Records view
+    renderRows(allTbody, rows, {updateTotal:false});
   }, (err) => console.error('onSnapshot error:', err));
 </script>
+</body>
+</html>
 </body>
 </html>
