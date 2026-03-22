@@ -463,7 +463,7 @@ formEmail?.addEventListener('submit', async (e) => {
   e.preventDefault();
   clearAuthErrors();
 
-  // --- robust email cleaning ---
+  // --- robust email cleaning (no overzealous regex gatekeeping) ---
   let email = ($('#authEmail')?.value ?? '');
   email = email
     .normalize('NFKC')                          // normalize Unicode look-alikes
@@ -472,16 +472,15 @@ formEmail?.addEventListener('submit', async (e) => {
     .toLowerCase()
     .trim();
 
-  const pass  = ($('#authPassword')?.value ?? '').trim();
+  const pass = ($('#authPassword')?.value ?? '').trim();
 
-  // very basic format check to give user-friendly message before calling Firebase
-  const basicEmailOk = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email);
-  if (!basicEmailOk) { authErrEmail.textContent = 'Please enter a valid email address (e.g., user@example.com)'; return; }
+  // Debug: log what we will send to Firebase (will appear in DevTools console)
+  console.log('[AUTH] attempting', { email, len: email.length });
 
   try {
     if (btnDoLogin.dataset.mode === 'signup') {
       const pass2 = ($('#authConfirm')?.value ?? '').trim();
-      if (pass !== pass2) { authErrEmail.textContent='Passwords do not match'; return; }
+      if (pass !== pass2) { authErrEmail.textContent = 'Passwords do not match'; return; }
       await createUserWithEmailAndPassword(auth, email, pass);
     } else {
       await signInWithEmailAndPassword(auth, email, pass);
@@ -489,8 +488,15 @@ formEmail?.addEventListener('submit', async (e) => {
     hide(authModal);
     formEmail.reset();
   } catch (err) {
-    console.error(err);
-    authErrEmail.textContent = err.message || 'Auth failed';
+    console.error('[AUTH] error', err);
+    const map = {
+      'auth/invalid-email': 'Email address is invalid. Please retype it.',
+      'auth/email-already-in-use': 'This email is already registered. Click “Sign in”.',
+      'auth/weak-password': 'Password is too weak. Use at least 6 characters.',
+      'auth/operation-not-allowed': 'Email/Password sign-in is disabled in Firebase Console.',
+      'auth/too-many-requests': 'Too many attempts. Please wait and try again.'
+    };
+    authErrEmail.textContent = map[err.code] || err.message || 'Auth failed';
     }
   });
 
