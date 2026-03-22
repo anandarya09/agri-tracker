@@ -9,8 +9,7 @@
   <link rel="stylesheet" href="styles.css"/>
 
   <!-- optional: quiet the favicon 404 -->
-  <link rel="icon"
-        href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='45' fill='%2300C853'/></svg>">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='45' fill='%2300C853'/></svg>">
 </head>
 <body>
   <!-- HEADER -->
@@ -367,187 +366,361 @@
 
   <!-- Firebase + Auth + Firestore (Modular v12) -->
   <script type="module">
-    /* -------------------- Firebase imports -------------------- */
-    import { initializeApp, getApp, getApps }
-      from "https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js";
-    import {
-      getFirestore, collection, doc, addDoc, updateDoc, deleteDoc, getDoc,
-      query, where, orderBy, onSnapshot, serverTimestamp
-    } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
-    import {
-      getAuth, onAuthStateChanged, signInWithEmailAndPassword,
-      createUserWithEmailAndPassword, signOut,
-      RecaptchaVerifier, signInWithPhoneNumber, PhoneAuthProvider, linkWithCredential
-    } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-auth.js";
+  /* -------------------- Firebase imports -------------------- */
+  import { initializeApp, getApp, getApps }
+    from "https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js";
+  import {
+    getFirestore, collection, doc, addDoc, updateDoc, deleteDoc, getDoc,
+    query, where, orderBy, onSnapshot, serverTimestamp
+  } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
+  import {
+    getAuth, onAuthStateChanged, signInWithEmailAndPassword,
+    createUserWithEmailAndPassword, signOut,
+    RecaptchaVerifier, signInWithPhoneNumber, PhoneAuthProvider, linkWithCredential
+  } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-auth.js";
 
-    /* -------------------- Config & init -------------------- */
-    const firebaseConfig = {
-      apiKey: "AIzaSyDhhXdXlQ3aZBnm3chI21b2Ot25iem99Yk",
-      authDomain: "agritracker-cardamon.firebaseapp.com",
-      projectId: "agritracker-cardamon",
-      storageBucket: "agritracker-cardamon.firebasestorage.app",
-      messagingSenderId: "690552538133",
-      appId: "1:690552538133:web:ad11484e35527bf417fa1c"
+  /* -------------------- Config & init -------------------- */
+  const firebaseConfig = {
+    apiKey: "AIzaSyDhhXdXlQ3aZBnm3chI21b2Ot25iem99Yk",
+    authDomain: "agritracker-cardamon.firebaseapp.com",
+    projectId: "agritracker-cardamon",
+    storageBucket: "agritracker-cardamon.firebasestorage.app",
+    messagingSenderId: "690552538133",
+    appId: "1:690552538133:web:ad11484e35527bf417fa1c"
+  };
+  const app  = getApps().length ? getApp() : initializeApp(firebaseConfig);
+  const db   = getFirestore(app);
+  const auth = getAuth(app);
+  window._db = db;
+
+  /* -------------------- DOM helpers -------------------- */
+  const $   = (id) => document.getElementById(id);
+  const val = (id) => ($(id)?.value ?? '').trim();
+  const txt = (id) => ($(id)?.textContent ?? '').trim();
+  const num = (id) => Number(val(id) || 0);
+
+  const entryForm  = $('entryForm');
+  const catTbody   = document.querySelector('#recordsTable tbody');
+  const allTbody   = document.querySelector('#allTable tbody');
+
+  // Header auth controls
+  const btnLogin  = $('btnLogin');
+  const btnLogout = $('btnLogout');
+  const userBadge = $('userBadge');
+  const userEmail = $('userEmail');
+
+  // Modal + tabs
+  const authModal   = $('authModal');
+  const authClose   = $('authClose');
+  const tabEmail    = $('tabEmail');
+  const tabPhone    = $('tabPhone');
+  const formEmail   = $('authFormEmail');
+  const formPhone   = $('authFormPhone');
+  const authErrEmail= $('authErrEmail');
+  const authErrPhone= $('authErrPhone');
+
+  // Email controls
+  const btnDoLogin  = $('btnDoLogin');
+  const btnDoSignup = $('btnDoSignup');
+  const confirmWrap = $('confirmWrap');
+
+  // Phone controls
+  const phoneInput    = $('authPhone');
+  const btnSendOtp    = $('btnSendOtp');
+  const otpWrap       = $('otpWrap');
+  const otpInput      = $('authOtp');
+  const btnVerifyOtp  = $('btnVerifyOtp');
+  const btnVerifyLink = $('btnVerifyLink');
+  const btnLinkMode   = $('btnLinkMode');
+  let linkMode = false; // when true → verify will link phone to current user
+
+  /* -------------------- Simple modal & tab toggles -------------------- */
+  function show(el){ if(el) el.style.display='flex'; }
+  function hide(el){ if(el) el.style.display='none'; }
+  function showBlock(el){ if(el) el.style.display='block'; }
+  function hideBlock(el){ if(el) el.style.display='none'; }
+  function clearAuthErrors(){ if (authErrEmail) authErrEmail.textContent=''; if (authErrPhone) authErrPhone.textContent=''; }
+
+  btnLogin?.addEventListener('click', () => { show(authModal); toEmail(); clearAuthErrors(); });
+  authClose?.addEventListener('click',  () => { hide(authModal); });
+
+  function toEmail(){ showBlock(formEmail); hideBlock(formPhone); tabEmail?.classList.remove('secondary'); tabPhone?.classList.add('secondary'); }
+  function toPhone(){ hideBlock(formEmail); showBlock(formPhone); tabPhone?.classList.remove('secondary'); tabEmail?.classList.add('secondary'); }
+
+  tabEmail?.addEventListener('click', () => { toEmail(); });
+  tabPhone?.addEventListener('click', () => { toPhone(); });
+
+  /* -------------------- Email/password auth -------------------- */
+  btnDoSignup?.addEventListener('click', () => {
+    const showConfirm = confirmWrap.style.display === 'none';
+    confirmWrap.style.display = showConfirm ? 'block' : 'none';
+    btnDoLogin.dataset.mode = showConfirm ? 'signup' : 'login';
+    btnDoLogin.textContent  = showConfirm ? 'Create account' : 'Sign in';
+    btnDoSignup.textContent = showConfirm ? 'Have an account? Sign in' : 'Create account';
+  });
+
+  formEmail?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    clearAuthErrors();
+    const email = val('authEmail');
+    const pass  = val('authPassword');
+    try {
+      if (btnDoLogin.dataset.mode === 'signup') {
+        const pass2 = val('authConfirm');
+        if (pass !== pass2) { authErrEmail.textContent='Passwords do not match'; return; }
+        await createUserWithEmailAndPassword(auth, email, pass);
+      } else {
+        await signInWithEmailAndPassword(auth, email, pass);
+      }
+      hide(authModal);
+      formEmail.reset();
+    } catch (err) {
+      console.error(err);
+      authErrEmail.textContent = err.message || 'Auth failed';
+    }
+  });
+
+  btnLogout?.addEventListener('click', async () => { await signOut(auth); });
+
+  /* -------------------- Phone (OTP) auth & linking -------------------- */
+  // E.164 for India: ensure +91 prefix if user types 9XXXXXXXXX
+  function normalizePhone(raw) {
+    let p = (raw || '').replace(/\s+/g, '');
+    if (p.startsWith('+')) return p;
+    if (p.startsWith('0'))  p = p.replace(/^0+/, '');
+    if (!p.startsWith('+91')) p = '+91' + p;
+    return p;
+  }
+
+  // Setup Invisible reCAPTCHA (once)
+  let recaptchaVerifier, confirmationResult;
+  function initRecaptcha() {
+    if (recaptchaVerifier) return recaptchaVerifier;
+    recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', { size: 'invisible' });
+    return recaptchaVerifier;
+  }
+
+  btnLinkMode?.addEventListener('click', () => {
+    linkMode = !linkMode;
+    btnLinkMode.textContent = `Link mode: ${linkMode ? 'On' : 'Off'}`;
+    updatePhoneButtons();
+  });
+
+  btnSendOtp?.addEventListener('click', async () => {
+    clearAuthErrors();
+    try {
+      const phone = normalizePhone(phoneInput.value);
+      if (!/^\+\d{10,15}$/.test(phone)) { authErrPhone.textContent='Enter a valid phone number'; return; }
+      initRecaptcha();
+      confirmationResult = await signInWithPhoneNumber(auth, phone, recaptchaVerifier);
+      showBlock(otpWrap);
+      otpInput.focus();
+    } catch (err) {
+      console.error(err);
+      authErrPhone.textContent = err.message || 'Failed to send OTP';
+    }
+  });
+
+  async function verifyOtpAndSignOrLink() {
+    const code = otpInput.value.trim();
+    if (!code) { authErrPhone.textContent='Enter the 6 digit code'; return; }
+    try {
+      if (linkMode && auth.currentUser) {
+        // Link phone to existing email/password user
+        const cred = PhoneAuthProvider.credential(confirmationResult.verificationId, code);
+        await linkWithCredential(auth.currentUser, cred);
+        alert('Phone linked to your account ✅');
+      } else {
+        // Sign in with phone
+        await confirmationResult.confirm(code);
+      }
+      hide(authModal);
+      formPhone.reset();
+      hideBlock(otpWrap);
+    } catch (err) {
+      console.error(err);
+      authErrPhone.textContent = err.message || 'OTP verification failed';
+    }
+  }
+
+  btnVerifyOtp?.addEventListener('click', verifyOtpAndSignOrLink);
+  btnVerifyLink?.addEventListener('click', verifyOtpAndSignOrLink);
+
+  function updatePhoneButtons() {
+    if (!btnVerifyOtp || !btnVerifyLink) return;
+    if (linkMode && auth.currentUser) {
+      btnVerifyOtp.style.display = 'none';
+      btnVerifyLink.style.display = 'inline-block';
+    } else {
+      btnVerifyOtp.style.display = 'inline-block';
+      btnVerifyLink.style.display = 'none';
+    }
+  }
+  document.addEventListener('click', updatePhoneButtons);
+
+  /* -------------------- Firestore list & save -------------------- */
+
+  // define enableForm ONCE
+  function enableForm(enable){
+    if (!entryForm) return;
+    [...entryForm.elements].forEach(el => el.disabled = !enable);
+  }
+
+  // Auto-sync readonly category from breadcrumb
+  (() => {
+    const catInput   = $('category');
+    const crumbCatEl = $('crumbCategory');
+    if (!catInput || !crumbCatEl) return;
+    const syncCat = () => { const v = (crumbCatEl.textContent || '').trim(); if (v && catInput.value !== v) catInput.value = v; };
+    syncCat();
+    const obs = new MutationObserver(syncCat);
+    obs.observe(crumbCatEl, { childList:true, characterData:true, subtree:true });
+    document.addEventListener('click', (e) => {
+      const t = e.target;
+      if (t && t.matches?.('.subtab-btn[data-subtab="catAdd"]')) setTimeout(syncCat, 50);
+    });
+  })();
+
+  // Robust submit handler (capturing → survives re-renders)
+  document.addEventListener('submit', async (e) => {
+    if (!(e.target && e.target.id === 'entryForm')) return;
+    e.preventDefault();
+
+    const user = auth.currentUser;
+    if (!user) { alert('Please sign in first.'); return; }
+
+    // Default date if empty
+    const dateInput = $('date');
+    if (dateInput && !dateInput.value) dateInput.value = new Date().toISOString().slice(0,10);
+
+    const payload = {
+      uid: user.uid,
+      date: val('date'),
+      category: val('category') || txt('crumbCategory'),
+      field: txt('crumbField2') || txt('fieldNameLabel') || txt('crumbField'),
+      material: val('material'),
+      quantity: num('quantity'),
+      normalLab: num('normalLab'),
+      specialLab: num('specialLab'),
+      cost: num('cost'),
+      notes: val('notes'),
+      updatedAt: serverTimestamp()
     };
-    const app  = getApps().length ? getApp() : initializeApp(firebaseConfig);
-    const db   = getFirestore(app);
-    const auth = getAuth(app);
-    window._db = db;
 
-    /* -------------------- DOM helpers -------------------- */
-    const $ = (id) => document.getElementById(id);
-    const val = (id) => ($(id)?.value ?? '').trim();
-    const txt = (id) => ($(id)?.textContent ?? '').trim();
-    const num = (id) => Number(val(id) || 0);
-
-    const entryForm  = $('entryForm');
-    const catTbody   = document.querySelector('#recordsTable tbody');
-    const allTbody   = document.querySelector('#allTable tbody');
-
-    // Header auth controls
-    const btnLogin  = $('btnLogin');
-    const btnLogout = $('btnLogout');
-    const userBadge = $('userBadge');
-    const userEmail = $('userEmail');
-
-    // Modal + tabs
-    const authModal   = $('authModal');
-    const authClose   = $('authClose');
-    const tabEmail    = $('tabEmail');
-    const tabPhone    = $('tabPhone');
-    const formEmail   = $('authFormEmail');
-    const formPhone   = $('authFormPhone');
-    const authErrEmail= $('authErrEmail');
-    const authErrPhone= $('authErrPhone');
-
-    // Email controls
-    const btnDoLogin  = $('btnDoLogin');
-    const btnDoSignup = $('btnDoSignup');
-    const confirmWrap = $('confirmWrap');
-
-    // Phone controls
-    const phoneInput    = $('authPhone');
-    const btnSendOtp    = $('btnSendOtp');
-    const otpWrap       = $('otpWrap');
-    const otpInput      = $('authOtp');
-    const btnVerifyOtp  = $('btnVerifyOtp');
-    const btnVerifyLink = $('btnVerifyLink');
-    const btnLinkMode   = $('btnLinkMode');
-    let linkMode = false; // when true → verify will link phone to current user
-
-    /* -------------------- Simple modal & tab toggles -------------------- */
-    function show(el){ if(el) el.style.display='flex'; }
-    function hide(el){ if(el) el.style.display='none'; }
-    function showBlock(el){ if(el) el.style.display='block'; }
-    function hideBlock(el){ if(el) el.style.display='none'; }
-    function clearAuthErrors(){ if (authErrEmail) authErrEmail.textContent=''; if (authErrPhone) authErrPhone.textContent=''; }
-
-    if (btnLogin)  btnLogin.addEventListener('click', () => { show(authModal); toEmail(); clearAuthErrors(); });
-    if (authClose) authClose.addEventListener('click',  () => { hide(authModal); });
-
-    function toEmail(){ showBlock(formEmail); hideBlock(formPhone); tabEmail?.classList.remove('secondary'); tabPhone?.classList.add('secondary'); }
-    function toPhone(){ hideBlock(formEmail); showBlock(formPhone); tabPhone?.classList.remove('secondary'); tabEmail?.classList.add('secondary'); }
-
-    tabEmail?.addEventListener('click', () => { toEmail(); });
-    tabPhone?.addEventListener('click', () => { toPhone(); });
-
-    /* -------------------- Email/password auth -------------------- */
-    btnDoSignup?.addEventListener('click', () => {
-      const showConfirm = confirmWrap.style.display === 'none';
-      confirmWrap.style.display = showConfirm ? 'block' : 'none';
-      btnDoLogin.dataset.mode = showConfirm ? 'signup' : 'login';
-      btnDoLogin.textContent  = showConfirm ? 'Create account' : 'Sign in';
-      btnDoSignup.textContent = showConfirm ? 'Have an account? Sign in' : 'Create account';
-    });
-
-    formEmail?.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      clearAuthErrors();
-      const email = val('authEmail');
-      const pass  = val('authPassword');
-      try {
-        if (btnDoLogin.dataset.mode === 'signup') {
-          const pass2 = val('authConfirm');
-          if (pass !== pass2) { authErrEmail.textContent='Passwords do not match'; return; }
-          await createUserWithEmailAndPassword(auth, email, pass);
-        } else {
-          await signInWithEmailAndPassword(auth, email, pass);
-        }
-        hide(authModal);
-        formEmail.reset();
-      } catch (err) {
-        console.error(err);
-        authErrEmail.textContent = err.message || 'Auth failed';
-      }
-    });
-
-    btnLogout?.addEventListener('click', async () => { await signOut(auth); });
-
-    /* -------------------- Phone (OTP) auth & linking -------------------- */
-    // E.164 for India: ensure +91 prefix if user types 9XXXXXXXXX
-    function normalizePhone(raw) {
-      let p = (raw || '').replace(/\s+/g, '');
-      if (p.startsWith('+')) return p;
-      if (p.startsWith('0'))  p = p.replace(/^0+/, '');
-      if (!p.startsWith('+91')) p = '+91' + p;
-      return p;
+    if (!payload.date || !payload.category) {
+      alert('தேதி மற்றும் பகுப்பு அவசியம். / Date & Category required.');
+      return;
     }
 
-    // Setup Invisible reCAPTCHA (once)
-    let recaptchaVerifier, confirmationResult;
-    function initRecaptcha() {
-      if (recaptchaVerifier) return recaptchaVerifier;
-      recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', { size: 'invisible' });
-      return recaptchaVerifier;
-    }
+    const idEl = $('entryId');
+    const id   = idEl?.value || '';
 
-    btnLinkMode?.addEventListener('click', () => {
-      linkMode = !linkMode;
-      btnLinkMode.textContent = `Link mode: ${linkMode ? 'On' : 'Off'}`;
-      updatePhoneButtons();
+    try {
+      if (id) {
+        await updateDoc(doc(db, 'expenses', id), payload);
+        alert('Updated ✅');
+      } else {
+        payload.createdAt = serverTimestamp();
+        const ref = await addDoc(collection(db, 'expenses'), payload);
+        if (idEl) idEl.value = ref.id;
+        alert('Saved ✅');
+      }
+      e.target.reset();
+      if (idEl) idEl.value = '';
+    } catch (err) {
+      console.error('[ENTRYFORM] save error:', err);
+      alert('Save failed. See Console (F12) for details.');
+    }
+  }, true);
+
+  // Live list with uid filter (may require index: uid ASC, date DESC)
+  let unsubscribe = null;
+  function startListener(uid) {
+    if (unsubscribe) { unsubscribe(); unsubscribe=null; }
+    const qExp = query(collection(db, 'expenses'), where('uid','==', uid), orderBy('date','desc'));
+    unsubscribe = onSnapshot(qExp, (snap) => {
+      const rows = snap.docs.map(x => ({ id: x.id, d: x.data() }));
+      const currentCat = val('category') || txt('crumbCategory');
+      const filtered   = currentCat ? rows.filter(r => r.d.category === currentCat) : rows;
+      renderRows(catTbody, filtered, {updateTotal:true});
+      renderRows(allTbody, rows, {updateTotal:false});
+    }, (err) => {
+      console.error('onSnapshot error:', err);
+      // If "FAILED_PRECONDITION: The query requires an index", click the console link to auto-create it.
+    });
+  }
+
+  function renderRows(tbody, docs, {updateTotal=false} = {}) {
+    if (!tbody) return;
+    tbody.innerHTML = '';
+    let total = 0;
+
+    docs.forEach(({ id, d }) => {
+      total += Number(d.cost || 0);
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${d.date ?? ''}</td>
+        <td>${d.category ?? ''}</td>
+        <td>${d.field ?? ''}</td>
+        <td>${d.material ?? ''}</td>
+        <td>${(d.quantity ?? '').toString()}</td>
+        <td>${(d.normalLab ?? '').toString()}</td>
+        <td>${(d.specialLab ?? '').toString()}</td>
+        <td>${(d.cost ?? '').toString()}</td>
+        <td>${d.notes ?? ''}</td>
+        <td>
+          <button class="link-btn" data-edit="${id}">Edit</button>
+          <button class="link-btn danger" data-del="${id}">Delete</button>
+        </td>
+      `;
+      tbody.appendChild(tr);
     });
 
-    btnSendOtp?.addEventListener('click', async () => {
-      clearAuthErrors();
-      try {
-        const phone = normalizePhone(phoneInput.value);
-        if (!/^\+\d{10,15}$/.test(phone)) { authErrPhone.textContent='Enter a valid phone number'; return; }
-        initRecaptcha();
-        confirmationResult = await signInWithPhoneNumber(auth, phone, recaptchaVerifier);
-        showBlock(otpWrap);
-        otpInput.focus();
-      } catch (err) {
-        console.error(err);
-        authErrPhone.textContent = err.message || 'Failed to send OTP';
-      }
-    });
-
-    async function verifyOtpAndSignOrLink() {
-      const code = otpInput.value.trim();
-      if (!code) { authErrPhone.textContent='Enter the 6 digit code'; return; }
-      try {
-        if (linkMode && auth.currentUser) {
-          // Link phone to existing email/password user
-          const cred = PhoneAuthProvider.credential(confirmationResult.verificationId, code);
-          await linkWithCredential(auth.currentUser, cred);
-          alert('Phone linked to your account ✅');
-        } else {
-          // Sign in with phone
-          await confirmationResult.confirm(code);
-        }
-        hide(authModal);
-        formPhone.reset();
-        hideBlock(otpWrap);
-      } catch (err) {
-        console.error(err);
-        authErrPhone.textContent = err.message || 'OTP verification failed';
-      }
+    if (updateTotal) {
+      const totalCell = $('tableTotal');
+      if (totalCell) totalCell.textContent = `₹${total.toLocaleString('en-IN')}`;
     }
 
-    btnVerifyOtp?.addEventListener('click', verifyOtpAndSignOrLink);
-    btnVerifyLink?.addEventListener('click', verifyOtpAndSignOrLink);
+    // Edit & Delete
+    tbody.querySelectorAll('[data-edit]').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        try {
+          const snap = await getDoc(doc(db, 'expenses', btn.dataset.edit));
+          const data = snap.data(); if (!data) return;
+          const idEl = $('entryId'); if (idEl) idEl.value = btn.dataset.edit;
+          ['date','category','material','quantity','normalLab','specialLab','cost','notes'].forEach(k => {
+            const el = $(k); if (el) el.value = (data[k] ?? '');
+          });
+          alert('Loaded for edit. Make changes and click Save.');
+        } catch (e) { console.error(e); }
+      });
+    });
+    tbody.querySelectorAll('[data-del]').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        if (!confirm('Delete this entry?')) return;
+        try { await deleteDoc(doc(db, 'expenses', btn.dataset.del)); }
+        catch (e) { console.error(e); alert('Delete failed.'); }
+      });
+    });
+  }
 
-    function updatePhoneButtons() {
+  /* -------------------- Auth state wiring -------------------- */
+  onAuthStateChanged(auth, (user) => {
+    if (user) {
+      if (btnLogin)  { btnLogin.style.display='inline-flex'; btnLogin.textContent='Signed in'; }
+      if (userBadge) userBadge.style.display='inline-flex';
+      if (userEmail) userEmail.textContent = user.phoneNumber || user.email || user.uid;
+      enableForm(true);
+      startListener(user.uid);
+    } else {
+      if (btnLogin)  { btnLogin.style.display='inline-flex'; btnLogin.textContent='Sign in'; }
+      if (userBadge) userBadge.style.display='none';
+      enableForm(false);
+      if (unsubscribe) { unsubscribe(); unsubscribe=null; }
+      if (catTbody) catTbody.innerHTML=''; if (allTbody) allTbody.innerHTML='';
+    }
+    // keep phone verify buttons in the correct mode
+    (function updatePhoneButtons(){
       if (!btnVerifyOtp || !btnVerifyLink) return;
       if (linkMode && auth.currentUser) {
         btnVerifyOtp.style.display = 'none';
@@ -556,185 +729,8 @@
         btnVerifyOtp.style.display = 'inline-block';
         btnVerifyLink.style.display = 'none';
       }
-    }
-    document.addEventListener('click', updatePhoneButtons);
-
-    /* -------------------- Firestore list & save -------------------- */
-    function enableForm(enable){
-      if (!entryForm) return;
-      [...entryForm.elements].forEach(el => el.disabled = !enable);
-    }
-
-    // Auto-sync readonly category from breadcrumb
-    (() => {
-      const catInput   = $('category');
-      const crumbCatEl = $('crumbCategory');
-      if (!catInput || !crumbCatEl) return;
-      const syncCat = () => { const v = (crumbCatEl.textContent || '').trim(); if (v && catInput.value !== v) catInput.value = v; };
-      syncCat();
-      const obs = new MutationObserver(syncCat);
-      obs.observe(crumbCatEl, { childList:true, characterData:true, subtree:true });
-      document.addEventListener('click', (e) => {
-        const t = e.target;
-        if (t && t.matches?.('.subtab-btn[data-subtab="catAdd"]')) setTimeout(syncCat, 50);
-      });
     })();
-
-    // Robust submit handler (capturing → survives re-renders)
-    document.addEventListener('submit', async (e) => {
-      if (!(e.target && e.target.id === 'entryForm')) return;
-      e.preventDefault();
-
-      const user = auth.currentUser;
-      if (!user) { alert('Please sign in first.'); return; }
-
-      // Default date if empty
-      const dateInput = $('date');
-      if (dateInput && !dateInput.value) dateInput.value = new Date().toISOString().slice(0,10);
-
-      const payload = {
-        uid: user.uid,
-        date: val('date'),
-        category: val('category') || txt('crumbCategory'),
-        field: txt('crumbField2') || txt('fieldNameLabel') || txt('crumbField'),
-        material: val('material'),
-        quantity: num('quantity'),
-        normalLab: num('normalLab'),
-        specialLab: num('specialLab'),
-        cost: num('cost'),
-        notes: val('notes'),
-        updatedAt: serverTimestamp()
-      };
-
-      if (!payload.date || !payload.category) {
-        alert('தேதி மற்றும் பகுப்பு அவசியம். / Date & Category required.');
-        return;
-      }
-
-      const idEl = $('entryId');
-      const id   = idEl?.value || '';
-
-      try {
-        if (id) {
-          await updateDoc(doc(db, 'expenses', id), payload);
-          alert('Updated ✅');
-        } else {
-          payload.createdAt = serverTimestamp();
-          const ref = await addDoc(collection(db, 'expenses'), payload);
-          if (idEl) idEl.value = ref.id;
-          alert('Saved ✅');
-        }
-        e.target.reset();
-        if (idEl) idEl.value = '';
-      } catch (err) {
-        console.error('[ENTRYFORM] save error:', err);
-        alert('Save failed. See Console (F12) for details.');
-      }
-    }, true);
-
-    // Live list with uid filter (may require index: uid ASC, date DESC)
-    let unsubscribe = null;
-    function startListener(uid) {
-      if (unsubscribe) { unsubscribe(); unsubscribe=null; }
-      const qExp = query(collection(db, 'expenses'), where('uid','==', uid), orderBy('date','desc'));
-      unsubscribe = onSnapshot(qExp, (snap) => {
-        const rows = snap.docs.map(x => ({ id: x.id, d: x.data() }));
-        const currentCat = val('category') || txt('crumbCategory');
-        const filtered   = currentCat ? rows.filter(r => r.d.category === currentCat) : rows;
-        renderRows(catTbody, filtered, {updateTotal:true});
-        renderRows(allTbody, rows, {updateTotal:false});
-      }, (err) => {
-        console.error('onSnapshot error:', err);
-        // If "FAILED_PRECONDITION: The query requires an index", click the console link to auto-create it.
-      });
-    }
-
-    function renderRows(tbody, docs, {updateTotal=false} = {}) {
-      if (!tbody) return;
-      tbody.innerHTML = '';
-      let total = 0;
-
-      docs.forEach(({ id, d }) => {
-        total += Number(d.cost || 0);
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td>${d.date ?? ''}</td>
-          <td>${d.category ?? ''}</td>
-          <td>${d.field ?? ''}</td>
-          <td>${d.material ?? ''}</td>
-          <td>${(d.quantity ?? '').toString()}</td>
-          <td>${(d.normalLab ?? '').toString()}</td>
-          <td>${(d.specialLab ?? '').toString()}</td>
-          <td>${(d.cost ?? '').toString()}</td>
-          <td>${d.notes ?? ''}</td>
-          <td>
-            <button class="link-btn" data-edit="${id}">Edit</button>
-            <button class="link-btn danger" data-del="${id}">Delete</button>
-          </td>
-        `;
-        tbody.appendChild(tr);
-      });
-
-      if (updateTotal) {
-        const totalCell = $('tableTotal');
-        if (totalCell) totalCell.textContent = `₹${total.toLocaleString('en-IN')}`;
-      }
-
-      // Edit & Delete
-      tbody.querySelectorAll('[data-edit]').forEach(btn => {
-        btn.addEventListener('click', async () => {
-          try {
-            const snap = await getDoc(doc(db, 'expenses', btn.dataset.edit));
-            const data = snap.data(); if (!data) return;
-            const idEl = $('entryId'); if (idEl) idEl.value = btn.dataset.edit;
-            ['date','category','material','quantity','normalLab','specialLab','cost','notes'].forEach(k => {
-              const el = $(k); if (el) el.value = (data[k] ?? '');
-            });
-            alert('Loaded for edit. Make changes and click Save.');
-          } catch (e) { console.error(e); }
-        });
-      });
-      tbody.querySelectorAll('[data-del]').forEach(btn => {
-        btn.addEventListener('click', async () => {
-          if (!confirm('Delete this entry?')) return;
-          try { await deleteDoc(doc(db, 'expenses', btn.dataset.del)); }
-          catch (e) { console.error(e); alert('Delete failed.'); }
-        });
-      });
-    }
-
-    /* -------------------- Auth state wiring -------------------- */
-    function enableForm(enable){
-      if (!entryForm) return;
-      [...entryForm.elements].forEach(el => el.disabled = !enable);
-    }
-
-    onAuthStateChanged(auth, (user) => {
-      if (user) {
-        if (btnLogin)  { btnLogin.style.display='inline-flex'; btnLogin.textContent='Signed in'; }
-        if (userBadge) userBadge.style.display='inline-flex';
-        if (userEmail) userEmail.textContent = user.phoneNumber || user.email || user.uid;
-        enableForm(true);
-        startListener(user.uid);
-      } else {
-        if (btnLogin)  { btnLogin.style.display='inline-flex'; btnLogin.textContent='Sign in'; }
-        if (userBadge) userBadge.style.display='none';
-        enableForm(false);
-        if (unsubscribe) { unsubscribe(); unsubscribe=null; }
-        if (catTbody) catTbody.innerHTML=''; if (allTbody) allTbody.innerHTML='';
-      }
-      // keep phone verify buttons in the correct mode
-      (function updatePhoneButtons(){
-        if (!btnVerifyOtp || !btnVerifyLink) return;
-        if (linkMode && auth.currentUser) {
-          btnVerifyOtp.style.display = 'none';
-          btnVerifyLink.style.display = 'inline-block';
-        } else {
-          btnVerifyOtp.style.display = 'inline-block';
-          btnVerifyLink.style.display = 'none';
-        }
-      })();
-    });
-  </script>
+  });
+</script>
 </body>
 </html>
