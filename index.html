@@ -458,24 +458,39 @@
     btnDoSignup.textContent = showConfirm ? 'Have an account? Sign in' : 'Create account';
   });
 
-  formEmail?.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    clearAuthErrors();
-    const email = ($('#authEmail')?.value ?? '').trim();
-    const pass  = ($('#authPassword')?.value ?? '').trim();
-    try {
-      if (btnDoLogin.dataset.mode === 'signup') {
-        const pass2 = ($('#authConfirm')?.value ?? '').trim();
-        if (pass !== pass2) { authErrEmail.textContent='Passwords do not match'; return; }
-        await createUserWithEmailAndPassword(auth, email, pass);
-      } else {
-        await signInWithEmailAndPassword(auth, email, pass);
-      }
-      hide(authModal);
-      formEmail.reset();
-    } catch (err) {
-      console.error(err);
-      authErrEmail.textContent = err.message || 'Auth failed';
+  
+formEmail?.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  clearAuthErrors();
+
+  // --- robust email cleaning ---
+  let email = ($('#authEmail')?.value ?? '');
+  email = email
+    .normalize('NFKC')                          // normalize Unicode look-alikes
+    .replace(/[\u200B-\u200D\uFEFF]/g, '')     // strip zero-width chars
+    .replace(/\s+/g, '')                        // remove all spaces
+    .toLowerCase()
+    .trim();
+
+  const pass  = ($('#authPassword')?.value ?? '').trim();
+
+  // very basic format check to give user-friendly message before calling Firebase
+  const basicEmailOk = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email);
+  if (!basicEmailOk) { authErrEmail.textContent = 'Please enter a valid email address (e.g., user@example.com)'; return; }
+
+  try {
+    if (btnDoLogin.dataset.mode === 'signup') {
+      const pass2 = ($('#authConfirm')?.value ?? '').trim();
+      if (pass !== pass2) { authErrEmail.textContent='Passwords do not match'; return; }
+      await createUserWithEmailAndPassword(auth, email, pass);
+    } else {
+      await signInWithEmailAndPassword(auth, email, pass);
+    }
+    hide(authModal);
+    formEmail.reset();
+  } catch (err) {
+    console.error(err);
+    authErrEmail.textContent = err.message || 'Auth failed';
     }
   });
 
