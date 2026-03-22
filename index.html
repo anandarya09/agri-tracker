@@ -10,7 +10,7 @@
 
   <!-- optional: quiet the favicon 404 -->
   <link rel="icon"
-        href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='45' fill='%2300C853'/></svg>">
+        href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='45' fill='%2300C853'/></svg>'">
 </head>
 <body>
   <!-- HEADER -->
@@ -41,6 +41,13 @@
         <option value="kn">ಕನ್ನಡ</option>
         <option value="ta" selected>தமிழ்</option>
       </select>
+
+      <!-- Auth controls -->
+      <button id="btnLogin" class="btn small primary" style="margin-left:8px;">Sign in</button>
+      <span id="userBadge" style="display:none; gap:8px; align-items:center; margin-left:8px;">
+        <small id="userEmail" class="muted"></small>
+        <button id="btnLogout" class="btn small secondary">Sign out</button>
+      </span>
     </div>
   </header>
 
@@ -295,19 +302,85 @@
     <small data-i18n="footer_note">உங்கள் பண்ணைக்கு • உள்ளூர் தரவு</small>
   </footer>
 
+  <!-- Auth Modal (Email/Password + Phone OTP) -->
+  <div id="authModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:9999; align-items:center; justify-content:center;">
+    <div style="background:#0f172a; color:#e2e8f0; padding:20px; border-radius:12px; width:360px; box-shadow:0 10px 30px rgba(0,0,0,.4)">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+        <h3 style="margin:0">Account</h3>
+        <button id="authClose" class="btn small secondary">✕</button>
+      </div>
+
+      <nav style="display:flex; gap:8px; margin-bottom:10px;">
+        <button id="tabEmail" class="btn small">Email / Password</button>
+        <button id="tabPhone" class="btn small secondary">Phone (OTP)</button>
+      </nav>
+
+      <!-- Email form -->
+      <form id="authFormEmail">
+        <div class="field">
+          <label>Email</label>
+          <input type="email" id="authEmail" required placeholder="you@example.com" />
+        </div>
+        <div class="field" style="margin-top:8px;">
+          <label>Password</label>
+          <input type="password" id="authPassword" required placeholder="••••••••" />
+        </div>
+        <div id="confirmWrap" class="field" style="margin-top:8px; display:none;">
+          <label>Confirm password</label>
+          <input type="password" id="authConfirm" placeholder="••••••••" />
+        </div>
+
+        <div style="display:flex; gap:8px; margin-top:12px;">
+          <button id="btnDoLogin"  class="btn"           type="submit" data-mode="login">Sign in</button>
+          <button id="btnDoSignup" class="btn secondary" type="button">Create account</button>
+        </div>
+        <small id="authErrEmail" class="muted"></small>
+      </form>
+
+      <!-- Phone OTP form -->
+      <form id="authFormPhone" style="display:none; margin-top:8px;">
+        <div class="field">
+          <label>Mobile number (India)</label>
+          <input type="tel" id="authPhone" placeholder="+91XXXXXXXXXX or 9XXXXXXXXX" />
+        </div>
+        <div style="display:flex; gap:8px; margin-top:10px;">
+          <button id="btnSendOtp" class="btn" type="button">Send OTP</button>
+          <button id="btnLinkMode" class="btn secondary" type="button" title="If signed in with email, link this phone to your account">Link mode: Off</button>
+        </div>
+        <div id="otpWrap" class="field" style="display:none; margin-top:10px;">
+          <label>Enter OTP</label>
+          <input type="text" id="authOtp" inputmode="numeric" maxlength="6" placeholder="6 digit code" />
+          <div style="display:flex; gap:8px; margin-top:10px;">
+            <button id="btnVerifyOtp"  class="btn"           type="button">Verify & Sign in</button>
+            <button id="btnVerifyLink" class="btn secondary" type="button" style="display:none;">Verify & Link</button>
+          </div>
+        </div>
+        <!-- Required container for Invisible reCAPTCHA -->
+        <div id="recaptcha-container"></div>
+        <small id="authErrPhone" class="muted"></small>
+      </form>
+    </div>
+  </div>
+
   <!-- scripts -->
   <script src="app.js"></script>
 
-  <!-- Firebase + Firestore (Modular v12) -->
+  <!-- Firebase + Auth + Firestore (Modular v12) -->
   <script type="module">
+    /* -------------------- Firebase imports -------------------- */
     import { initializeApp, getApp, getApps }
       from "https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js";
     import {
       getFirestore, collection, doc, addDoc, updateDoc, deleteDoc, getDoc,
-      query, orderBy, onSnapshot, serverTimestamp
+      query, where, orderBy, onSnapshot, serverTimestamp
     } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
+    import {
+      getAuth, onAuthStateChanged, signInWithEmailAndPassword,
+      createUserWithEmailAndPassword, signOut,
+      RecaptchaVerifier, signInWithPhoneNumber, PhoneAuthProvider, linkWithCredential
+    } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-auth.js";
 
-    // --- Your Firebase config ---
+    /* -------------------- Config & init -------------------- */
     const firebaseConfig = {
       apiKey: "AIzaSyDhhXdXlQ3aZBnm3chI21b2Ot25iem99Yk",
       authDomain: "agritracker-cardamon.firebaseapp.com",
@@ -316,59 +389,210 @@
       messagingSenderId: "690552538133",
       appId: "1:690552538133:web:ad11484e35527bf417fa1c"
     };
+    const app  = getApps().length ? getApp() : initializeApp(firebaseConfig);
+    const db   = getFirestore(app);
+    const auth = getAuth(app);
+    window._db = db;
 
-    // Init once
-    const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
-    const db  = getFirestore(app);
-    window._db = db; // optional for console tests
+    /* -------------------- DOM helpers -------------------- */
+    const $ = (id) => document.getElementById(id);
+    const val = (id) => ($(id)?.value ?? '').trim();
+    const txt = (id) => ($(id)?.textContent ?? '').trim();
+    const num = (id) => Number(val(id) || 0);
 
-    // ---------- Auto‑sync the readonly Category input with the crumb label ----------
+    const entryForm  = $('entryForm');
+    const catTbody   = document.querySelector('#recordsTable tbody');
+    const allTbody   = document.querySelector('#allTable tbody');
+
+    // Header auth controls
+    const btnLogin  = $('btnLogin');
+    const btnLogout = $('btnLogout');
+    const userBadge = $('userBadge');
+    const userEmail = $('userEmail');
+
+    // Modal + tabs
+    const authModal   = $('authModal');
+    const authClose   = $('authClose');
+    const tabEmail    = $('tabEmail');
+    const tabPhone    = $('tabPhone');
+    const formEmail   = $('authFormEmail');
+    const formPhone   = $('authFormPhone');
+    const authErrEmail= $('authErrEmail');
+    const authErrPhone= $('authErrPhone');
+
+    // Email controls
+    const btnDoLogin  = $('btnDoLogin');
+    const btnDoSignup = $('btnDoSignup');
+    const confirmWrap = $('confirmWrap');
+
+    // Phone controls
+    const phoneInput    = $('authPhone');
+    const btnSendOtp    = $('btnSendOtp');
+    const otpWrap       = $('otpWrap');
+    const otpInput      = $('authOtp');
+    const btnVerifyOtp  = $('btnVerifyOtp');
+    const btnVerifyLink = $('btnVerifyLink');
+    const btnLinkMode   = $('btnLinkMode');
+    let linkMode = false; // when true → verify will link phone to current user
+
+    /* -------------------- Simple modal & tab toggles -------------------- */
+    function show(el){ if(el) el.style.display='flex'; }
+    function hide(el){ if(el) el.style.display='none'; }
+    function showBlock(el){ if(el) el.style.display='block'; }
+    function hideBlock(el){ if(el) el.style.display='none'; }
+    function clearAuthErrors(){ authErrEmail.textContent=''; authErrPhone.textContent=''; }
+
+    if (btnLogin)  btnLogin.addEventListener('click', () => { show(authModal); toEmail(); clearAuthErrors(); });
+    if (authClose) authClose.addEventListener('click',  () => { hide(authModal); });
+
+    function toEmail(){ showBlock(formEmail); hideBlock(formPhone); tabEmail.classList.remove('secondary'); tabPhone.classList.add('secondary'); }
+    function toPhone(){ hideBlock(formEmail); showBlock(formPhone); tabPhone.classList.remove('secondary'); tabEmail.classList.add('secondary'); }
+
+    if (tabEmail) tabEmail.addEventListener('click', () => { toEmail(); });
+    if (tabPhone) tabPhone.addEventListener('click', () => { toPhone(); });
+
+    /* -------------------- Email/password auth -------------------- */
+    if (btnDoSignup) btnDoSignup.addEventListener('click', () => {
+      const showConfirm = confirmWrap.style.display === 'none';
+      confirmWrap.style.display = showConfirm ? 'block' : 'none';
+      btnDoLogin.dataset.mode = showConfirm ? 'signup' : 'login';
+      btnDoLogin.textContent  = showConfirm ? 'Create account' : 'Sign in';
+      btnDoSignup.textContent = showConfirm ? 'Have an account? Sign in' : 'Create account';
+    });
+
+    if (formEmail) formEmail.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      clearAuthErrors();
+      const email = val('authEmail');
+      const pass  = val('authPassword');
+      try {
+        if (btnDoLogin.dataset.mode === 'signup') {
+          const pass2 = val('authConfirm');
+          if (pass !== pass2) { authErrEmail.textContent='Passwords do not match'; return; }
+          await createUserWithEmailAndPassword(auth, email, pass);
+        } else {
+          await signInWithEmailAndPassword(auth, email, pass);
+        }
+        hide(authModal);
+        formEmail.reset();
+      } catch (err) {
+        console.error(err);
+        authErrEmail.textContent = err.message || 'Auth failed';
+      }
+    });
+
+    if (btnLogout) btnLogout.addEventListener('click', async () => { await signOut(auth); });
+
+    /* -------------------- Phone (OTP) auth & linking -------------------- */
+    // E.164 for India: ensure +91 prefix if user types 9XXXXXXXXX
+    function normalizePhone(raw) {
+      let p = (raw || '').replace(/\s+/g, '');
+      if (p.startsWith('+')) return p;
+      if (p.startsWith('0'))  p = p.replace(/^0+/, '');
+      if (!p.startsWith('+91')) p = '+91' + p;
+      return p;
+    }
+
+    // Setup Invisible reCAPTCHA (once)
+    let recaptchaVerifier, confirmationResult;
+    function initRecaptcha() {
+      if (recaptchaVerifier) return recaptchaVerifier;
+      recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', { size: 'invisible' });
+      return recaptchaVerifier;
+    }
+
+    if (btnLinkMode) btnLinkMode.addEventListener('click', () => {
+      linkMode = !linkMode;
+      btnLinkMode.textContent = `Link mode: ${linkMode ? 'On' : 'Off'}`;
+      updatePhoneButtons();
+    });
+
+    if (btnSendOtp) btnSendOtp.addEventListener('click', async () => {
+      clearAuthErrors();
+      try {
+        const phone = normalizePhone(phoneInput.value);
+        if (!/^\+\d{10,15}$/.test(phone)) { authErrPhone.textContent='Enter a valid phone number'; return; }
+        initRecaptcha();
+        confirmationResult = await signInWithPhoneNumber(auth, phone, recaptchaVerifier);
+        showBlock(otpWrap);
+        otpInput.focus();
+      } catch (err) {
+        console.error(err);
+        authErrPhone.textContent = err.message || 'Failed to send OTP';
+      }
+    });
+
+    async function verifyOtpAndSignOrLink() {
+      const code = otpInput.value.trim();
+      if (!code) { authErrPhone.textContent='Enter the 6 digit code'; return; }
+      try {
+        if (linkMode && auth.currentUser) {
+          // Link phone to existing email/password user
+          const cred = PhoneAuthProvider.credential(confirmationResult.verificationId, code);
+          await linkWithCredential(auth.currentUser, cred);
+          alert('Phone linked to your account ✅');
+        } else {
+          // Sign in with phone
+          await confirmationResult.confirm(code);
+        }
+        hide(authModal);
+        formPhone.reset();
+        hideBlock(otpWrap);
+      } catch (err) {
+        console.error(err);
+        authErrPhone.textContent = err.message || 'OTP verification failed';
+      }
+    }
+
+    if (btnVerifyOtp)  btnVerifyOtp.addEventListener('click', verifyOtpAndSignOrLink);
+    if (btnVerifyLink) btnVerifyLink.addEventListener('click', verifyOtpAndSignOrLink);
+
+    function updatePhoneButtons() {
+      if (linkMode && auth.currentUser) {
+        btnVerifyOtp.style.display = 'none';
+        btnVerifyLink.style.display = 'inline-block';
+      } else {
+        btnVerifyOtp.style.display = 'inline-block';
+        btnVerifyLink.style.display = 'none';
+      }
+    }
+    document.addEventListener('click', updatePhoneButtons);
+
+    /* -------------------- Firestore list & save -------------------- */
+    function enableForm(enable){
+      if (!entryForm) return;
+      [...entryForm.elements].forEach(el => el.disabled = !enable);
+    }
+
+    // Auto-sync readonly category from breadcrumb
     (() => {
-      const catInput   = document.getElementById('category');
-      const crumbCatEl = document.getElementById('crumbCategory');
+      const catInput   = $('category');
+      const crumbCatEl = $('crumbCategory');
       if (!catInput || !crumbCatEl) return;
-
-      const syncCat = () => {
-        const v = (crumbCatEl.textContent || '').trim();
-        if (v && catInput.value !== v) catInput.value = v;
-      };
+      const syncCat = () => { const v = (crumbCatEl.textContent || '').trim(); if (v && catInput.value !== v) catInput.value = v; };
       syncCat();
-
       const obs = new MutationObserver(syncCat);
-      obs.observe(crumbCatEl, { childList: true, characterData: true, subtree: true });
-
-      // When "Add Entry" subtab is opened
+      obs.observe(crumbCatEl, { childList:true, characterData:true, subtree:true });
       document.addEventListener('click', (e) => {
         const t = e.target;
-        if (t && t.matches?.('.subtab-btn[data-subtab="catAdd"]')) {
-          setTimeout(syncCat, 50);
-        }
+        if (t && t.matches?.('.subtab-btn[data-subtab="catAdd"]')) setTimeout(syncCat, 50);
       });
     })();
 
-    // ---------- Helpers ----------
-    const val = (id) => (document.getElementById(id)?.value ?? '').trim();
-    const txt = (id) => (document.getElementById(id)?.textContent ?? '').trim();
-    const num = (id) => Number(val(id) || 0);
-
-    // ---------- ROBUST SUBMIT HANDLER (capturing) ----------
-    // Works even if the form is re-rendered by your tab code.
+    // Robust submit handler (capturing → survives re-renders)
     document.addEventListener('submit', async (e) => {
       if (!(e.target && e.target.id === 'entryForm')) return;
       e.preventDefault();
 
-      // Default date if empty
-      const dateInput = document.getElementById('date');
-      if (dateInput && !dateInput.value) {
-        dateInput.value = new Date().toISOString().slice(0,10);
-      }
+      const user = auth.currentUser;
+      if (!user) { alert('Please sign in first.'); return; }
 
-      // Ensure category is set from crumb if empty
-      if (!val('category') && txt('crumbCategory')) {
-        const c = document.getElementById('category'); if (c) c.value = txt('crumbCategory');
-      }
+      // Default date if empty
+      const dateInput = $('date');
+      if (dateInput && !dateInput.value) dateInput.value = new Date().toISOString().slice(0,10);
 
       const payload = {
+        uid: user.uid,
         date: val('date'),
         category: val('category') || txt('crumbCategory'),
         field: txt('crumbField2') || txt('fieldNameLabel') || txt('crumbField'),
@@ -381,14 +605,12 @@
         updatedAt: serverTimestamp()
       };
 
-      console.log('[ENTRYFORM] submit payload →', payload);
-
       if (!payload.date || !payload.category) {
         alert('தேதி மற்றும் பகுப்பு அவசியம். / Date & Category required.');
         return;
       }
 
-      const idEl = document.getElementById('entryId');
+      const idEl = $('entryId');
       const id   = idEl?.value || '';
 
       try {
@@ -398,7 +620,6 @@
         } else {
           payload.createdAt = serverTimestamp();
           const ref = await addDoc(collection(db, 'expenses'), payload);
-          console.log('[ENTRYFORM] added doc →', ref.id);
           if (idEl) idEl.value = ref.id;
           alert('Saved ✅');
         }
@@ -408,11 +629,24 @@
         console.error('[ENTRYFORM] save error:', err);
         alert('Save failed. See Console (F12) for details.');
       }
-    }, true); // capturing=true
+    }, true);
 
-    // ---------- LIVE TABLES ----------
-    const catTbody = document.querySelector('#recordsTable tbody');
-    const allTbody = document.querySelector('#allTable tbody');
+    // Live list with uid filter (may require index: uid ASC, date DESC)
+    let unsubscribe = null;
+    function startListener(uid) {
+      if (unsubscribe) { unsubscribe(); unsubscribe=null; }
+      const qExp = query(collection(db, 'expenses'), where('uid','==', uid), orderBy('date','desc'));
+      unsubscribe = onSnapshot(qExp, (snap) => {
+        const rows = snap.docs.map(x => ({ id: x.id, d: x.data() }));
+        const currentCat = val('category') || txt('crumbCategory');
+        const filtered   = currentCat ? rows.filter(r => r.d.category === currentCat) : rows;
+        renderRows(catTbody, filtered, {updateTotal:true});
+        renderRows(allTbody, rows, {updateTotal:false});
+      }, (err) => {
+        console.error('onSnapshot error:', err);
+        // If "FAILED_PRECONDITION: The query requires an index", click the console link to auto-create it.
+      });
+    }
 
     function renderRows(tbody, docs, {updateTotal=false} = {}) {
       if (!tbody) return;
@@ -441,27 +675,24 @@
       });
 
       if (updateTotal) {
-        const totalCell = document.getElementById('tableTotal');
+        const totalCell = $('tableTotal');
         if (totalCell) totalCell.textContent = `₹${total.toLocaleString('en-IN')}`;
       }
 
-      // Edit action
+      // Edit & Delete
       tbody.querySelectorAll('[data-edit]').forEach(btn => {
         btn.addEventListener('click', async () => {
           try {
             const snap = await getDoc(doc(db, 'expenses', btn.dataset.edit));
-            const data = snap.data();
-            if (!data) return;
-            const idEl = document.getElementById('entryId'); if (idEl) idEl.value = btn.dataset.edit;
+            const data = snap.data(); if (!data) return;
+            const idEl = $('entryId'); if (idEl) idEl.value = btn.dataset.edit;
             ['date','category','material','quantity','normalLab','specialLab','cost','notes'].forEach(k => {
-              const el = document.getElementById(k); if (el) el.value = (data[k] ?? '');
+              const el = $(k); if (el) el.value = (data[k] ?? '');
             });
             alert('Loaded for edit. Make changes and click Save.');
           } catch (e) { console.error(e); }
         });
       });
-
-      // Delete action
       tbody.querySelectorAll('[data-del]').forEach(btn => {
         btn.addEventListener('click', async () => {
           if (!confirm('Delete this entry?')) return;
@@ -471,19 +702,38 @@
       });
     }
 
-    // Single live query for all expenses (most recent first)
-    const q = query(collection(db, 'expenses'), orderBy('date', 'desc'));
-    onSnapshot(q, (snap) => {
-      const rows = snap.docs.map(x => ({ id: x.id, d: x.data() }));
+    /* -------------------- Auth state wiring -------------------- */
+    function enableForm(enable){
+      if (!entryForm) return;
+      [...entryForm.elements].forEach(el => el.disabled = !enable);
+    }
 
-      // Category Records view (if a category is active)
-      const currentCat = val('category') || txt('crumbCategory');
-      const filtered   = currentCat ? rows.filter(r => r.d.category === currentCat) : rows;
-      renderRows(catTbody, filtered, {updateTotal:true});
-
-      // All Records view
-      renderRows(allTbody, rows, {updateTotal:false});
-    }, (err) => console.error('onSnapshot error:', err));
+    onAuthStateChanged(auth, (user) => {
+      if (user) {
+        if (btnLogin)  btnLogin.style.display='inline-flex', btnLogin.textContent='Signed in';
+        if (userBadge) userBadge.style.display='inline-flex';
+        if (userEmail) userEmail.textContent = user.phoneNumber || user.email || user.uid;
+        enableForm(true);
+        startListener(user.uid);
+      } else {
+        if (btnLogin)  btnLogin.style.display='inline-flex', btnLogin.textContent='Sign in';
+        if (userBadge) userBadge.style.display='none';
+        enableForm(false);
+        if (unsubscribe) { unsubscribe(); unsubscribe=null; }
+        if (catTbody) catTbody.innerHTML=''; if (allTbody) allTbody.innerHTML='';
+      }
+      // keep phone verify buttons in the correct mode
+      (function updatePhoneButtons(){
+        if (!btnVerifyOtp || !btnVerifyLink) return;
+        if (linkMode && auth.currentUser) {
+          btnVerifyOtp.style.display = 'none';
+          btnVerifyLink.style.display = 'inline-block';
+        } else {
+          btnVerifyOtp.style.display = 'inline-block';
+          btnVerifyLink.style.display = 'none';
+        }
+      })();
+    });
   </script>
 </body>
 </html>
