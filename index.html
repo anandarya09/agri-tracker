@@ -292,24 +292,172 @@
 
   <!-- scripts -->
   <script src="app.js"></script>
+
+  <!-- Firebase + Firestore (Modular v12) -->
   <script type="module">
-  // Import the functions you need from the SDKs you need
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js";
-  // TODO: Add SDKs for Firebase products that you want to use
-  // https://firebase.google.com/docs/web/setup#available-libraries
+    import { initializeApp, getApp, getApps } 
+      from "https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js";
+    import {
+      getFirestore, collection, doc, addDoc, updateDoc, deleteDoc, getDoc,
+      query, orderBy, onSnapshot, serverTimestamp
+    } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
 
-  // Your web app's Firebase configuration
-  const firebaseConfig = {
-    apiKey: "AIzaSyDhhXdXlQ3aZBnm3chI21b2Ot25iem99Yk",
-    authDomain: "agritracker-cardamon.firebaseapp.com",
-    projectId: "agritracker-cardamon",
-    storageBucket: "agritracker-cardamon.firebasestorage.app",
-    messagingSenderId: "690552538133",
-    appId: "1:690552538133:web:ad11484e35527bf417fa1c"
-  };
+    // --- Your Firebase config (from console) ---
+    const firebaseConfig = {
+      apiKey: "AIzaSyDhhXdXlQ3aZBnm3chI21b2Ot25iem99Yk",
+      authDomain: "agritracker-cardamon.firebaseapp.com",
+      projectId: "agritracker-cardamon",
+      storageBucket: "agritracker-cardamon.firebasestorage.app",
+      messagingSenderId: "690552538133",
+      appId: "1:690552538133:web:ad11484e35527bf417fa1c"
+    };
 
-  // Initialize Firebase
-  const app = initializeApp(firebaseConfig);
-</script>
+    // Init once
+    const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+    const db  = getFirestore(app);
+    window._db = db; // optional for console testing
+
+    // Small helpers
+    const val = (id) => (document.getElementById(id)?.value ?? '').trim();
+    const txt = (id) => (document.getElementById(id)?.textContent ?? '').trim();
+    const num = (id) => Number(val(id) || 0);
+
+    // ===== Save / Update from entry form =====
+    const entryForm = document.getElementById('entryForm');
+    if (entryForm) {
+      entryForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const payload = {
+          date: val('date'),
+          category: val('category') || txt('crumbCategory'),
+          field: txt('crumbField2') || txt('fieldNameLabel') || txt('crumbField'),
+          material: val('material'),
+          quantity: num('quantity'),
+          normalLab: num('normalLab'),
+          specialLab: num('specialLab'),
+          cost: num('cost'),
+          notes: val('notes'),
+          updatedAt: serverTimestamp()
+        };
+
+        if (!payload.date || !payload.category) {
+          alert('தேதி மற்றும் பகுப்பு அவசியம். / Date & Category required.');
+          return;
+        }
+
+        const id = val('entryId');
+        try {
+          if (id) {
+            await updateDoc(doc(db, 'expenses', id), payload);
+            alert('Updated ✅');
+          } else {
+            payload.createdAt = serverTimestamp();
+            const ref = await addDoc(collection(db, 'expenses'), payload);
+            // store id back if you need to keep editing
+            const idEl = document.getElementById('entryId');
+            if (idEl) idEl.value = ref.id;
+            alert('Saved ✅');
+          }
+          entryForm.reset();
+        } catch (err) {
+          console.error('Save error:', err);
+          alert('Save failed. See console for details.');
+        }
+      });
+
+      // Optional: reset button clears hidden id
+      const resetBtn = document.getElementById('resetBtn');
+      if (resetBtn) {
+        resetBtn.addEventListener('click', () => {
+          const idEl = document.getElementById('entryId');
+          if (idEl) idEl.value = '';
+          entryForm.reset();
+        });
+      }
+    }
+
+    // ===== Live tables (Category Records + All Records) =====
+    const catTbody = document.querySelector('#recordsTable tbody');
+    const allTbody = document.querySelector('#allTable tbody');
+
+    function renderRows(tbody, docs, {updateTotal=false} = {}) {
+      if (!tbody) return;
+      tbody.innerHTML = '';
+      let total = 0;
+
+      docs.forEach(({ id, d }) => {
+        total += Number(d.cost || 0);
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${d.date ?? ''}</td>
+          <td>${d.category ?? ''}</td>
+          <td>${d.field ?? ''}</td>
+          <td>${d.material ?? ''}</td>
+          <td>${(d.quantity ?? '').toString()}</td>
+          <td>${(d.normalLab ?? '').toString()}</td>
+          <td>${(d.specialLab ?? '').toString()}</td>
+          <td>${(d.cost ?? '').toString()}</td>
+          <td>${d.notes ?? ''}</td>
+          <td>
+            <button class="link-btn" data-edit="${id}">Edit</button>
+            <button class="link-btn danger" data-del="${id}">Delete</button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      if (updateTotal) {
+        const totalCell = document.getElementById('tableTotal');
+        if (totalCell) totalCell.textContent = `₹${total.toLocaleString('en-IN')}`;
+      }
+
+      // wire actions
+      tbody.querySelectorAll('[data-edit]').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          try {
+            const snap = await getDoc(doc(db, 'expenses', btn.dataset.edit));
+            const data = snap.data();
+            if (!data) return;
+            const idEl = document.getElementById('entryId'); if (idEl) idEl.value = btn.dataset.edit;
+            ['date','category','material','quantity','normalLab','specialLab','cost','notes'].forEach(k => {
+              const el = document.getElementById(k); if (el) el.value = (data[k] ?? '');
+            });
+            alert('Loaded for edit. Make changes and click Save.');
+          } catch (e) {
+            console.error(e);
+          }
+        });
+      });
+
+      tbody.querySelectorAll('[data-del]').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          if (!confirm('Delete this entry?')) return;
+          try {
+            await deleteDoc(doc(db, 'expenses', btn.dataset.del));
+          } catch (e) {
+            console.error(e);
+            alert('Delete failed.');
+          }
+        });
+      });
+    }
+
+    // Live query
+    const q = query(collection(db, 'expenses'), orderBy('date', 'desc'));
+    onSnapshot(q, (snap) => {
+      const rows = snap.docs.map(x => ({ id: x.id, d: x.data() }));
+
+      // Category Records: filter to current category (if set)
+      const currentCat = val('category') || txt('crumbCategory');
+      const filtered = currentCat ? rows.filter(r => r.d.category === currentCat) : rows;
+      renderRows(catTbody, filtered, {updateTotal:true});
+
+      // All Records: show everything
+      renderRows(allTbody, rows, {updateTotal:false});
+    }, (err) => {
+      console.error('onSnapshot error:', err);
+    });
+  </script>
 </body>
 </html>
