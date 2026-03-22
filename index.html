@@ -4,8 +4,13 @@
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>EverGreen Farm Activity & Expense Tracker</title>
+
   <!-- styles -->
   <link rel="stylesheet" href="styles.css"/>
+
+  <!-- optional: quiet the favicon 404 -->
+  <link rel="icon"
+        href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='45' fill='%2300C853'/></svg>">
 </head>
 <body>
   <!-- HEADER -->
@@ -290,67 +295,78 @@
     <small data-i18n="footer_note">உங்கள் பண்ணைக்கு • உள்ளூர் தரவு</small>
   </footer>
 
- <!-- scripts -->
-<script src="app.js"></script>
+  <!-- scripts -->
+  <script src="app.js"></script>
 
-<!-- Firebase + Firestore (Modular v12) -->
-<script type="module">
-  import { initializeApp, getApp, getApps }
-    from "https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js";
-  import {
-    getFirestore, collection, doc, addDoc, updateDoc, deleteDoc, getDoc,
-    query, orderBy, onSnapshot, serverTimestamp
-  } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
+  <!-- Firebase + Firestore (Modular v12) -->
+  <script type="module">
+    import { initializeApp, getApp, getApps }
+      from "https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js";
+    import {
+      getFirestore, collection, doc, addDoc, updateDoc, deleteDoc, getDoc,
+      query, orderBy, onSnapshot, serverTimestamp
+    } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
 
-  // --- Your Firebase config ---
-  const firebaseConfig = {
-    apiKey: "AIzaSyDhhXdXlQ3aZBnm3chI21b2Ot25iem99Yk",
-    authDomain: "agritracker-cardamon.firebaseapp.com",
-    projectId: "agritracker-cardamon",
-    storageBucket: "agritracker-cardamon.firebasestorage.app",
-    messagingSenderId: "690552538133",
-    appId: "1:690552538133:web:ad11484e35527bf417fa1c"
-  };
-
-  // Init once
-  const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
-  const db  = getFirestore(app);
-  window._db = db; // for quick console tests (optional)
-
-  // ---------- Auto‑sync the readonly Category input with the crumb label ----------
-  (() => {
-    const catInput   = document.getElementById('category');
-    const crumbCatEl = document.getElementById('crumbCategory');
-    if (!catInput || !crumbCatEl) return;
-
-    const syncCat = () => {
-      const v = (crumbCatEl.textContent || '').trim();
-      if (v && catInput.value !== v) catInput.value = v;
+    // --- Your Firebase config ---
+    const firebaseConfig = {
+      apiKey: "AIzaSyDhhXdXlQ3aZBnm3chI21b2Ot25iem99Yk",
+      authDomain: "agritracker-cardamon.firebaseapp.com",
+      projectId: "agritracker-cardamon",
+      storageBucket: "agritracker-cardamon.firebasestorage.app",
+      messagingSenderId: "690552538133",
+      appId: "1:690552538133:web:ad11484e35527bf417fa1c"
     };
-    syncCat();
 
-    const obs = new MutationObserver(syncCat);
-    obs.observe(crumbCatEl, { childList: true, characterData: true, subtree: true });
+    // Init once
+    const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
+    const db  = getFirestore(app);
+    window._db = db; // optional for console tests
 
-    // When "Add Entry" subtab is opened
-    document.addEventListener('click', (e) => {
-      const t = e.target;
-      if (t && t.matches?.('.subtab-btn[data-subtab="catAdd"]')) {
-        setTimeout(syncCat, 50);
-      }
-    });
-  })();
+    // ---------- Auto‑sync the readonly Category input with the crumb label ----------
+    (() => {
+      const catInput   = document.getElementById('category');
+      const crumbCatEl = document.getElementById('crumbCategory');
+      if (!catInput || !crumbCatEl) return;
 
-  // ---------- Helpers ----------
-  const val = (id) => (document.getElementById(id)?.value ?? '').trim();
-  const txt = (id) => (document.getElementById(id)?.textContent ?? '').trim();
-  const num = (id) => Number(val(id) || 0);
+      const syncCat = () => {
+        const v = (crumbCatEl.textContent || '').trim();
+        if (v && catInput.value !== v) catInput.value = v;
+      };
+      syncCat();
 
-  // ---------- SAVE / UPDATE ----------
-  const entryForm = document.getElementById('entryForm');
-  if (entryForm) {
-    entryForm.addEventListener('submit', async (e) => {
+      const obs = new MutationObserver(syncCat);
+      obs.observe(crumbCatEl, { childList: true, characterData: true, subtree: true });
+
+      // When "Add Entry" subtab is opened
+      document.addEventListener('click', (e) => {
+        const t = e.target;
+        if (t && t.matches?.('.subtab-btn[data-subtab="catAdd"]')) {
+          setTimeout(syncCat, 50);
+        }
+      });
+    })();
+
+    // ---------- Helpers ----------
+    const val = (id) => (document.getElementById(id)?.value ?? '').trim();
+    const txt = (id) => (document.getElementById(id)?.textContent ?? '').trim();
+    const num = (id) => Number(val(id) || 0);
+
+    // ---------- ROBUST SUBMIT HANDLER (capturing) ----------
+    // Works even if the form is re-rendered by your tab code.
+    document.addEventListener('submit', async (e) => {
+      if (!(e.target && e.target.id === 'entryForm')) return;
       e.preventDefault();
+
+      // Default date if empty
+      const dateInput = document.getElementById('date');
+      if (dateInput && !dateInput.value) {
+        dateInput.value = new Date().toISOString().slice(0,10);
+      }
+
+      // Ensure category is set from crumb if empty
+      if (!val('category') && txt('crumbCategory')) {
+        const c = document.getElementById('category'); if (c) c.value = txt('crumbCategory');
+      }
 
       const payload = {
         date: val('date'),
@@ -364,6 +380,8 @@
         notes: val('notes'),
         updatedAt: serverTimestamp()
       };
+
+      console.log('[ENTRYFORM] submit payload →', payload);
 
       if (!payload.date || !payload.category) {
         alert('தேதி மற்றும் பகுப்பு அவசியம். / Date & Category required.');
@@ -380,104 +398,92 @@
         } else {
           payload.createdAt = serverTimestamp();
           const ref = await addDoc(collection(db, 'expenses'), payload);
-          if (idEl) idEl.value = ref.id; // so you can edit immediately if needed
+          console.log('[ENTRYFORM] added doc →', ref.id);
+          if (idEl) idEl.value = ref.id;
           alert('Saved ✅');
         }
-        entryForm.reset();
+        e.target.reset();
         if (idEl) idEl.value = '';
       } catch (err) {
-        console.error('Save error:', err);
+        console.error('[ENTRYFORM] save error:', err);
         alert('Save failed. See Console (F12) for details.');
       }
-    });
+    }, true); // capturing=true
 
-    // Reset clears hidden id
-    const resetBtn = document.getElementById('resetBtn');
-    if (resetBtn) {
-      resetBtn.addEventListener('click', () => {
-        const idEl = document.getElementById('entryId');
-        if (idEl) idEl.value = '';
-        entryForm.reset();
+    // ---------- LIVE TABLES ----------
+    const catTbody = document.querySelector('#recordsTable tbody');
+    const allTbody = document.querySelector('#allTable tbody');
+
+    function renderRows(tbody, docs, {updateTotal=false} = {}) {
+      if (!tbody) return;
+      tbody.innerHTML = '';
+      let total = 0;
+
+      docs.forEach(({ id, d }) => {
+        total += Number(d.cost || 0);
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${d.date ?? ''}</td>
+          <td>${d.category ?? ''}</td>
+          <td>${d.field ?? ''}</td>
+          <td>${d.material ?? ''}</td>
+          <td>${(d.quantity ?? '').toString()}</td>
+          <td>${(d.normalLab ?? '').toString()}</td>
+          <td>${(d.specialLab ?? '').toString()}</td>
+          <td>${(d.cost ?? '').toString()}</td>
+          <td>${d.notes ?? ''}</td>
+          <td>
+            <button class="link-btn" data-edit="${id}">Edit</button>
+            <button class="link-btn danger" data-del="${id}">Delete</button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      if (updateTotal) {
+        const totalCell = document.getElementById('tableTotal');
+        if (totalCell) totalCell.textContent = `₹${total.toLocaleString('en-IN')}`;
+      }
+
+      // Edit action
+      tbody.querySelectorAll('[data-edit]').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          try {
+            const snap = await getDoc(doc(db, 'expenses', btn.dataset.edit));
+            const data = snap.data();
+            if (!data) return;
+            const idEl = document.getElementById('entryId'); if (idEl) idEl.value = btn.dataset.edit;
+            ['date','category','material','quantity','normalLab','specialLab','cost','notes'].forEach(k => {
+              const el = document.getElementById(k); if (el) el.value = (data[k] ?? '');
+            });
+            alert('Loaded for edit. Make changes and click Save.');
+          } catch (e) { console.error(e); }
+        });
+      });
+
+      // Delete action
+      tbody.querySelectorAll('[data-del]').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          if (!confirm('Delete this entry?')) return;
+          try { await deleteDoc(doc(db, 'expenses', btn.dataset.del)); }
+          catch (e) { console.error(e); alert('Delete failed.'); }
+        });
       });
     }
-  }
 
-  // ---------- LIVE TABLES ----------
-  const catTbody = document.querySelector('#recordsTable tbody');
-  const allTbody = document.querySelector('#allTable tbody');
+    // Single live query for all expenses (most recent first)
+    const q = query(collection(db, 'expenses'), orderBy('date', 'desc'));
+    onSnapshot(q, (snap) => {
+      const rows = snap.docs.map(x => ({ id: x.id, d: x.data() }));
 
-  function renderRows(tbody, docs, {updateTotal=false} = {}) {
-    if (!tbody) return;
-    tbody.innerHTML = '';
-    let total = 0;
+      // Category Records view (if a category is active)
+      const currentCat = val('category') || txt('crumbCategory');
+      const filtered   = currentCat ? rows.filter(r => r.d.category === currentCat) : rows;
+      renderRows(catTbody, filtered, {updateTotal:true});
 
-    docs.forEach(({ id, d }) => {
-      total += Number(d.cost || 0);
-      const tr = document.createElement('tr');
-      tr.innerHTML = `
-        <td>${d.date ?? ''}</td>
-        <td>${d.category ?? ''}</td>
-        <td>${d.field ?? ''}</td>
-        <td>${d.material ?? ''}</td>
-        <td>${(d.quantity ?? '').toString()}</td>
-        <td>${(d.normalLab ?? '').toString()}</td>
-        <td>${(d.specialLab ?? '').toString()}</td>
-        <td>${(d.cost ?? '').toString()}</td>
-        <td>${d.notes ?? ''}</td>
-        <td>
-          <button class="link-btn" data-edit="${id}">Edit</button>
-          <button class="link-btn danger" data-del="${id}">Delete</button>
-        </td>
-      `;
-      tbody.appendChild(tr);
-    });
-
-    if (updateTotal) {
-      const totalCell = document.getElementById('tableTotal');
-      if (totalCell) totalCell.textContent = `₹${total.toLocaleString('en-IN')}`;
-    }
-
-    // Edit action
-    tbody.querySelectorAll('[data-edit]').forEach(btn => {
-      btn.addEventListener('click', async () => {
-        try {
-          const snap = await getDoc(doc(db, 'expenses', btn.dataset.edit));
-          const data = snap.data();
-          if (!data) return;
-          const idEl = document.getElementById('entryId'); if (idEl) idEl.value = btn.dataset.edit;
-          ['date','category','material','quantity','normalLab','specialLab','cost','notes'].forEach(k => {
-            const el = document.getElementById(k); if (el) el.value = (data[k] ?? '');
-          });
-          alert('Loaded for edit. Make changes and click Save.');
-        } catch (e) { console.error(e); }
-      });
-    });
-
-    // Delete action
-    tbody.querySelectorAll('[data-del]').forEach(btn => {
-      btn.addEventListener('click', async () => {
-        if (!confirm('Delete this entry?')) return;
-        try { await deleteDoc(doc(db, 'expenses', btn.dataset.del)); }
-        catch (e) { console.error(e); alert('Delete failed.'); }
-      });
-    });
-  }
-
-  // Single live query for all expenses (most recent first)
-  const q = query(collection(db, 'expenses'), orderBy('date', 'desc'));
-  onSnapshot(q, (snap) => {
-    const rows = snap.docs.map(x => ({ id: x.id, d: x.data() }));
-
-    // Category Records view (if a category is active)
-    const currentCat = val('category') || txt('crumbCategory');
-    const filtered   = currentCat ? rows.filter(r => r.d.category === currentCat) : rows;
-    renderRows(catTbody, filtered, {updateTotal:true});
-
-    // All Records view
-    renderRows(allTbody, rows, {updateTotal:false});
-  }, (err) => console.error('onSnapshot error:', err));
-</script>
-</body>
-</html>
+      // All Records view
+      renderRows(allTbody, rows, {updateTotal:false});
+    }, (err) => console.error('onSnapshot error:', err));
+  </script>
 </body>
 </html>
