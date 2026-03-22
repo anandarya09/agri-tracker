@@ -292,5 +292,24 @@
 
   <!-- scripts -->
   <script src="app.js"></script>
+  <script type="module">
+  // Import the functions you need from the SDKs you need
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js";
+  // TODO: Add SDKs for Firebase products that you want to use
+  // https://firebase.google.com/docs/web/setup#available-libraries
+
+  // Your web app's Firebase configuration
+  const firebaseConfig = {
+    apiKey: "AIzaSyDhhXdXlQ3aZBnm3chI21b2Ot25iem99Yk",
+    authDomain: "agritracker-cardamon.firebaseapp.com",
+    projectId: "agritracker-cardamon",
+    storageBucket: "agritracker-cardamon.firebasestorage.app",
+    messagingSenderId: "690552538133",
+    appId: "1:690552538133:web:ad11484e35527bf417fa1c"
+  };
+
+  // Initialize Firebase
+  const app = initializeApp(firebaseConfig);
+</script>
 </body>
 </html>
