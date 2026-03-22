@@ -10,7 +10,7 @@
 
   <!-- optional: quiet the favicon 404 -->
   <link rel="icon"
-        href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='45' fill='%2300C853'/></svg>'">
+        href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='45' fill='%2300C853'/></svg>">
 </head>
 <body>
   <!-- HEADER -->
@@ -440,19 +440,19 @@
     function hide(el){ if(el) el.style.display='none'; }
     function showBlock(el){ if(el) el.style.display='block'; }
     function hideBlock(el){ if(el) el.style.display='none'; }
-    function clearAuthErrors(){ authErrEmail.textContent=''; authErrPhone.textContent=''; }
+    function clearAuthErrors(){ if (authErrEmail) authErrEmail.textContent=''; if (authErrPhone) authErrPhone.textContent=''; }
 
     if (btnLogin)  btnLogin.addEventListener('click', () => { show(authModal); toEmail(); clearAuthErrors(); });
     if (authClose) authClose.addEventListener('click',  () => { hide(authModal); });
 
-    function toEmail(){ showBlock(formEmail); hideBlock(formPhone); tabEmail.classList.remove('secondary'); tabPhone.classList.add('secondary'); }
-    function toPhone(){ hideBlock(formEmail); showBlock(formPhone); tabPhone.classList.remove('secondary'); tabEmail.classList.add('secondary'); }
+    function toEmail(){ showBlock(formEmail); hideBlock(formPhone); tabEmail?.classList.remove('secondary'); tabPhone?.classList.add('secondary'); }
+    function toPhone(){ hideBlock(formEmail); showBlock(formPhone); tabPhone?.classList.remove('secondary'); tabEmail?.classList.add('secondary'); }
 
-    if (tabEmail) tabEmail.addEventListener('click', () => { toEmail(); });
-    if (tabPhone) tabPhone.addEventListener('click', () => { toPhone(); });
+    tabEmail?.addEventListener('click', () => { toEmail(); });
+    tabPhone?.addEventListener('click', () => { toPhone(); });
 
     /* -------------------- Email/password auth -------------------- */
-    if (btnDoSignup) btnDoSignup.addEventListener('click', () => {
+    btnDoSignup?.addEventListener('click', () => {
       const showConfirm = confirmWrap.style.display === 'none';
       confirmWrap.style.display = showConfirm ? 'block' : 'none';
       btnDoLogin.dataset.mode = showConfirm ? 'signup' : 'login';
@@ -460,7 +460,7 @@
       btnDoSignup.textContent = showConfirm ? 'Have an account? Sign in' : 'Create account';
     });
 
-    if (formEmail) formEmail.addEventListener('submit', async (e) => {
+    formEmail?.addEventListener('submit', async (e) => {
       e.preventDefault();
       clearAuthErrors();
       const email = val('authEmail');
@@ -481,7 +481,7 @@
       }
     });
 
-    if (btnLogout) btnLogout.addEventListener('click', async () => { await signOut(auth); });
+    btnLogout?.addEventListener('click', async () => { await signOut(auth); });
 
     /* -------------------- Phone (OTP) auth & linking -------------------- */
     // E.164 for India: ensure +91 prefix if user types 9XXXXXXXXX
@@ -501,13 +501,13 @@
       return recaptchaVerifier;
     }
 
-    if (btnLinkMode) btnLinkMode.addEventListener('click', () => {
+    btnLinkMode?.addEventListener('click', () => {
       linkMode = !linkMode;
       btnLinkMode.textContent = `Link mode: ${linkMode ? 'On' : 'Off'}`;
       updatePhoneButtons();
     });
 
-    if (btnSendOtp) btnSendOtp.addEventListener('click', async () => {
+    btnSendOtp?.addEventListener('click', async () => {
       clearAuthErrors();
       try {
         const phone = normalizePhone(phoneInput.value);
@@ -544,10 +544,11 @@
       }
     }
 
-    if (btnVerifyOtp)  btnVerifyOtp.addEventListener('click', verifyOtpAndSignOrLink);
-    if (btnVerifyLink) btnVerifyLink.addEventListener('click', verifyOtpAndSignOrLink);
+    btnVerifyOtp?.addEventListener('click', verifyOtpAndSignOrLink);
+    btnVerifyLink?.addEventListener('click', verifyOtpAndSignOrLink);
 
     function updatePhoneButtons() {
+      if (!btnVerifyOtp || !btnVerifyLink) return;
       if (linkMode && auth.currentUser) {
         btnVerifyOtp.style.display = 'none';
         btnVerifyLink.style.display = 'inline-block';
@@ -710,13 +711,13 @@
 
     onAuthStateChanged(auth, (user) => {
       if (user) {
-        if (btnLogin)  btnLogin.style.display='inline-flex', btnLogin.textContent='Signed in';
+        if (btnLogin)  { btnLogin.style.display='inline-flex'; btnLogin.textContent='Signed in'; }
         if (userBadge) userBadge.style.display='inline-flex';
         if (userEmail) userEmail.textContent = user.phoneNumber || user.email || user.uid;
         enableForm(true);
         startListener(user.uid);
       } else {
-        if (btnLogin)  btnLogin.style.display='inline-flex', btnLogin.textContent='Sign in';
+        if (btnLogin)  { btnLogin.style.display='inline-flex'; btnLogin.textContent='Sign in'; }
         if (userBadge) userBadge.style.display='none';
         enableForm(false);
         if (unsubscribe) { unsubscribe(); unsubscribe=null; }
