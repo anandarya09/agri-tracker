@@ -1,5 +1,4 @@
 /***** Keys & storage *****/
-const THEME_KEY = 'farm_theme_v1';
 const LS_KEY = 'farm_records_v5';       // legacy local cache (fallback only)
 const SETTINGS_KEY = 'farm_settings_v4';
 const LANG_KEY = 'farm_lang_v1';
@@ -30,20 +29,6 @@ const DEFAULT_SETTINGS = {
 
 /***** State *****/
 const App = {
-  function applyTheme(t){
-  document.documentElement.setAttribute('data-theme', t);
-  const tg = document.getElementById('themeToggle');
-  if (tg) tg.checked = (t === 'light');
-}
-function getTheme(){ return localStorage.getItem(THEME_KEY) || 'dark'; }
-function setTheme(t){ localStorage.setItem(THEME_KEY, t); applyTheme(t); }
-
-// init toggle
-(function wireTheme(){
-  applyTheme(getTheme());
-  const tg = document.getElementById('themeToggle');
-  if (tg) tg.addEventListener('change', () => setTheme(tg.checked ? 'light' : 'dark'));
-})();
   mode: 'homeTiles',          // homeTiles | fieldView | categoryView | globalDash | recordsAll | settings
   selectedField: null,
   selectedCategory: null,
@@ -292,48 +277,20 @@ const filter = { from: $('#filterFrom'), to: $('#filterTo'), search: $('#filterS
 [filter.from, filter.to, filter.search].forEach(el => el?.addEventListener('input', ()=>{ /* Firestore table already drawn */ }));
 
 /***** GLOBAL DASH *****/
-
 function renderGlobalDash(){
-  const list = loadRecords(); // cloud-first from index.html broadcast
-  const today = todayISO();
+  const list = loadRecords().filter(r=>isThisMonth(r.date));
+  $('#gTotal').textContent = currency(sumCost(list));
+  $('#gCount').textContent = String(list.length);
 
-  // Today
-  const todayList  = list.filter(r => r.date === today);
-  const todayTotal = sumCost(todayList);
-  const gTodayTotal = document.getElementById('gTodayTotal');
-  const gTodayCount = document.getElementById('gTodayCount');
-  if (gTodayTotal) gTodayTotal.textContent = currency(todayTotal);
-  if (gTodayCount) gTodayCount.textContent = String(todayList.length);
-
-  // This month
-  const month = list.filter(r => isThisMonth(r.date));
-  const s = loadSettings();
-
-  const gTotal = document.getElementById('gTotal');
-  const gCount = document.getElementById('gCount');
-  const gTopCat = document.getElementById('gTopCat');
-  if (gTotal) gTotal.textContent = currency(sumCost(month));
-  if (gCount) gCount.textContent = String(month.length);
-
-  // By category (chips)
-  const byCat = {};
-  month.forEach(r => byCat[r.category] = (byCat[r.category] || 0) + (r.cost || 0));
-  const wrap = document.getElementById('gByCat');
-  if (wrap) {
-    wrap.innerHTML = '';
-    const sorted = Object.entries(byCat).sort((a,b)=>b[1]-a[1]);
-    gTopCat && (gTopCat.textContent = sorted[0] ? `${sorted[0][0]} (${currency(sorted[0][1])})` : '—');
-    sorted.forEach(([k,v])=>{
-      const cat = s.categories.find(c=>c.name===k) || {color:'#2a3b66'};
-      const span=document.createElement('span'); span.className='chip-cat'; span.style.borderColor = shade(cat.color,-20);
-      span.style.background='#0b1430';
-      span.style.marginRight='6px'; span.style.padding='6px 10px'; span.style.border='1px solid '+shade(cat.color,-20); span.style.borderRadius='999px';
-      span.innerHTML=`<span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${cat.color};margin-right:6px"></span>${k}: ${currency(v)}`;
-      wrap.appendChild(span);
-    });
-  }
-
-  // Bar chart
+  const s=loadSettings(); const byCat={}; list.forEach(r=> byCat[r.category]=(byCat[r.category]||0)+(r.cost||0));
+  const wrap=$('#gByCat'); if (!wrap) return; wrap.innerHTML=''; const sorted=Object.entries(byCat).sort((a,b)=>b[1]-a[1]);
+  $('#gTopCat').textContent = sorted[0]? `${sorted[0][0]} (${currency(sorted[0][1])})` : '—';
+  sorted.forEach(([k,v])=>{
+    const cat=s.categories.find(c=>c.name===k)||{color:'#2a3b66'};
+    const span=document.createElement('span'); span.className='chip-cat'; span.style.borderColor=shade(cat.color,-20);
+    span.style.background='#0b1430'; span.innerHTML=`<span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${cat.color};margin-right:6px"></span>${k}: ${currency(v)}`;
+    wrap.appendChild(span);
+  });
   drawGlobalBar(byCat, s);
 }
 
