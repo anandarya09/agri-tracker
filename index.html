@@ -13,6 +13,12 @@
 </head>
 <body>
   <!-- HEADER -->
+  <!-- Connectivity banner & loading overlay -->
+<div id="netBanner" class="net-banner" style="display:none"></div>
+<div id="loadingOverlay" class="loading-overlay" style="display:none">
+  <div class="spinner"></div>
+  <span data-i18n="loading">Loading…</span>
+</div>
   <header class="app-header glass">
     <div class="brand">
       <div class="logo-dot"></div>
@@ -99,6 +105,15 @@
 
       <!-- Category Dashboard -->
       <section id="catDash" class="subtab active">
+        <div class="card stat gradient-amber">
+  <h3>Today — Total</h3>
+  <p id="gTodayTotal" class="stat-value">₹0</p>
+</div>
+<div class="card stat gradient-blue">
+  <h3>Today — Entries</h3>
+  <p id="gTodayCount" class="stat-value">0</p>
+</div>
+
         <div class="stats-grid">
           <div class="card stat gradient-green">
             <h3 data-i18n="total_cost_month">இந்த மாதம் — மொத்த செலவு</h3>
@@ -413,7 +428,22 @@
   const entryForm  = $('entryForm');
   const catTbody   = document.querySelector('#recordsTable tbody');
   const allTbody   = document.querySelector('#allTable tbody');
+// === Banner & Loading helpers ============================================
+const netBanner = $('netBanner');
+const loadingOverlay = $('loadingOverlay');
 
+function setBanner(mode, text){
+  if (!netBanner) return;
+  netBanner.className = 'net-banner ' + mode;
+  netBanner.textContent = text;
+  netBanner.style.display = 'block';
+}
+function hideBanner(){ if (netBanner) netBanner.style.display='none'; }
+function showLoading(on){ if (loadingOverlay) loadingOverlay.style.display = on ? 'flex' : 'none'; }
+
+// reflect browser network instantly
+window.addEventListener('online',  () => setBanner('connecting','Reconnecting…'));
+window.addEventListener('offline', () => setBanner('offline','Offline — showing cached data'));
   // Header auth controls
   const btnLogin  = $('btnLogin');
   const btnLogout = $('btnLogout');
@@ -661,35 +691,67 @@ formEmail?.addEventListener('submit', async (e) => {
     }
   }, true);
 
-  // Live list with uid filter (may require index: uid ASC, date DESC)
-  let unsubscribe = null;
-  function startListener(uid) {
-    if (unsubscribe) { unsubscribe(); unsubscribe=null; }
-    if (!uid) return;
 
-    const qExp = query(
-      collection(db, 'expenses'),
-      where('uid','==', uid),
-      orderBy('date','desc')
-    );
+// Live list with uid filter (may require index: uid ASC, date DESC)
+let unsubscribe = null;
+function startListener(uid) {
+  if (unsubscribe) { unsubscribe(); unsubscribe=null; }
+  if (!uid) return;
 
-    unsubscribe = onSnapshot(qExp, (snap) => {
+  // show "connecting" & loader until first server snapshot
+  setBanner('connecting','Connecting to Firestore…');
+  showLoading(true);
+  let first = true;
+
+  const qExp = query(
+    collection(db, 'expenses'),
+    where('uid','==', uid),
+    orderBy('date','desc')
+  );
+
+  unsubscribe = onSnapshot(
+    qExp,
+    { includeMetadataChanges: true },
+    (snap) => {
+      // online/offline/cache state
+      const onlineServer = navigator.onLine && !snap.metadata.fromCache;
+      if (onlineServer) {
+        setBanner('online', 'Connected to Firestore');
+      } else if (navigator.onLine) {
+        setBanner('cache', 'Connected (cached)');
+      } else {
+        setBanner('offline', 'Offline — showing cached data');
+      }
+      if (first) { showLoading(false); first=false; }
+
       const rows = snap.docs.map(x => ({ id: x.id, d: x.data() }));
 
-      // 👉 broadcast rows for app.js (home/global/recordsAll)
+      // broadcast rows for app.js (home/global/recordsAll)
       window.dispatchEvent(new CustomEvent('cloud-rows', { detail: rows }));
 
-      const currentCat = val('category') || txt('crumbCategory');
+      const currentCat = (document.getElementById('category')?.value || (document.getElementById('crumbCategory')?.textContent||'')).trim();
       const filtered   = currentCat ? rows.filter(r => r.d.category === currentCat) : rows;
 
       // Category Records + All Records tables (uid-filtered)
-      renderRows(catTbody, filtered, {updateTotal:true});
-      renderRows(allTbody, rows,     {updateTotal:false});
-    }, (err) => {
+      renderRows(document.querySelector('#recordsTable tbody'), filtered, {updateTotal:true});
+      renderRows(document.querySelector('#allTable tbody'), rows,     {updateTotal:false});
+    },
+    (err) => {
       console.error('onSnapshot error:', err);
-      // If "FAILED_PRECONDITION: The query requires an index", click the console link to auto-create it.
-    });
-  }
+      // Offer one-click index creation if missing
+      const m = String(err.message || '');
+      const link = m.match(/https?:\/\/[^\s)]+/);
+      if (link) {
+        setBanner('warn', 'This view needs a Firestore index. Opening setup…');
+        window.open(link[0], '_blank');
+      } else {
+        setBanner('offline','Could not load entries.');
+      }
+      showLoading(false);
+    }
+  );
+}
+
 
   function renderRows(tbody, docs, {updateTotal=false} = {}) {
     if (!tbody) return;
@@ -762,6 +824,7 @@ formEmail?.addEventListener('submit', async (e) => {
 
       // 👉 clear rows for app.js views (home/global/recordsAll)
       window.dispatchEvent(new CustomEvent('cloud-rows', { detail: [] }));
+      showLoading(false);
     }
 
     // keep phone verify buttons in the correct mode
