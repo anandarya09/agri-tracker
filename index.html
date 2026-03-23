@@ -374,6 +374,20 @@
     query, where, orderBy, onSnapshot, serverTimestamp
   } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
   import {
+    // DEBUG: log the raw and sanitized email characters we will send
+(function debugEmail(eSel = '#authEmail') {
+  const raw = document.querySelector(eSel)?.value ?? '';
+  const cleaned = raw
+    .normalize('NFKC')
+    .replace(/[\u200B-\u200D\uFEFF]/g, '')
+    .replace(/\s+/g, '')
+    .toLowerCase()
+    .trim();
+  const rawCodes = [...raw].map(c => c.charCodeAt(0));
+  const cleanCodes = [...cleaned].map(c => c.charCodeAt(0));
+  console.log('[AUTH DEBUG] raw   =', JSON.stringify(raw), rawCodes);
+  console.log('[AUTH DEBUG] clean =', JSON.stringify(cleaned), cleanCodes);
+})();
     getAuth, onAuthStateChanged, signInWithEmailAndPassword,
     createUserWithEmailAndPassword, signOut,
     RecaptchaVerifier, signInWithPhoneNumber, PhoneAuthProvider, linkWithCredential
