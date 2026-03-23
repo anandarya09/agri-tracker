@@ -461,38 +461,31 @@
 
   
 
+
+// Email/Password submit
 formEmail?.addEventListener('submit', async (e) => {
   e.preventDefault();
   clearAuthErrors();
 
-  // --- Aggressive email cleaning and validation ---
-  let email = ($('#authEmail')?.value ?? '');
+  // Get values from ids (no #)
+  let email = ( $('authEmail')?.value ?? '' );
+  const pass  = ( $('authPassword')?.value ?? '' ).trim();
 
-  // Normalize and remove invisible/space characters, then lowercase
+  // Aggressive sanitize (keeps letters, digits, symbols; strips invisibles & spaces)
   email = email
-    .normalize('NFKC')                          // normalize Unicode look-alikes
-    .replace(/[\u200B-\u200D\uFEFF]/g, '')     // strip zero-width chars
-    .replace(/\u00A0/g, ' ')                    // non-breaking space -> space
-    .replace(/\s+/g, '')                        // remove all spaces
+    .normalize('NFKC')                      // normalize Unicode look-alikes
+    .replace(/[\u200B-\u200D\uFEFF]/g, '') // zero-width
+    .replace(/\u00A0/g, ' ')               // NBSP -> space
+    .replace(/\s+/g, '')                   // remove all spaces
     .trim()
     .toLowerCase();
 
-  const pass = ($('#authPassword')?.value ?? '').trim();
-
-  // Optional: final lightweight shape check (still let Firebase decide)
-  // Accept very broadly; Firebase will be the final judge.
-  if (!email || !email.includes('@') || !email.includes('.')) {
-    authErrEmail.textContent = 'Email address is invalid. Please retype it.';
-    console.log('[AUTH] rejected before call, email=', JSON.stringify(email));
-    return;
-  }
-
-  // Log exactly what we will send
+  // Debug: see exactly what is going to Firebase
   console.log('[AUTH] attempting', { email, len: email.length });
 
   try {
     if (btnDoLogin.dataset.mode === 'signup') {
-      const pass2 = ($('#authConfirm')?.value ?? '').trim();
+      const pass2 = ( $('authConfirm')?.value ?? '' ).trim();
       if (pass !== pass2) { authErrEmail.textContent = 'Passwords do not match'; return; }
       await createUserWithEmailAndPassword(auth, email, pass);
     } else {
@@ -503,11 +496,11 @@ formEmail?.addEventListener('submit', async (e) => {
   } catch (err) {
     console.error('[AUTH] error', err);
     const map = {
-      'auth/invalid-email': 'Email address is invalid. Please retype it.',
+      'auth/invalid-email':        'Email address is invalid. Please retype it.',
       'auth/email-already-in-use': 'This email is already registered. Click “Sign in”.',
-      'auth/weak-password': 'Password is too weak. Use at least 6 characters.',
-      'auth/operation-not-allowed': 'Email/Password sign-in is disabled in Firebase Console.',
-      'auth/too-many-requests': 'Too many attempts. Please wait and try again.'
+      'auth/weak-password':        'Password is too weak. Use at least 6 characters.',
+      'auth/operation-not-allowed':'Email/Password sign-in is disabled in Firebase Console.',
+      'auth/too-many-requests':    'Too many attempts. Please wait and try again.'
     };
     authErrEmail.textContent = map[err.code] || err.message || 'Auth failed';
     }
