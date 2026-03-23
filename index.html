@@ -1,14 +1,14 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="dark">
+<html lang="en">
 <head>
   <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>EverGreen Farm Activity & Expense Tracker</title>
 
-  <!-- Styles -->
+  <!-- styles -->
   <link rel="stylesheet" href="styles.css"/>
 
-  <!-- Favicon (inline SVG) -->
+  <!-- optional: quiet the favicon 404 -->
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='45' fill='%2300C853'/></svg>">
 </head>
 <body>
@@ -16,10 +16,10 @@
   <header class="app-header glass">
     <div class="brand">
       <div class="logo-dot"></div>
-      <h1 id="brandTitle">EverGreen Farm Activity &amp; Expense Tracker</h1>
+      <!-- Keep your brand as-is (not auto-translated) -->
+      <h1 id="brandTitle">EverGreen Farm Activity & Expense Tracker</h1>
     </div>
 
-    <!-- Top navigation -->
     <nav class="tabs">
       <button class="tab-btn active" data-tab="homeTiles" data-i18n="home">முகப்பு</button>
       <button class="tab-btn" data-tab="globalDash" data-i18n="global_dashboard">முழுமை டாஷ்போர்டு</button>
@@ -27,7 +27,6 @@
       <button class="tab-btn" data-tab="settings" data-i18n="settings">அமைப்புகள்</button>
     </nav>
 
-    <!-- Header actions -->
     <div class="header-actions">
       <button id="exportCsvBtn" class="btn small" data-i18n="export_csv">CSV ஏற்றுமதி</button>
       <button id="exportJsonBtn" class="btn small secondary" data-i18n="backup_json">காப்பு (JSON)</button>
@@ -36,37 +35,20 @@
       </label>
       <button id="downloadPngBtn" class="btn small outline" data-i18n="download_png">அறிக்கை (PNG) பதிவிறக்கு</button>
 
-      <select id="langSelect" class="lang" title="Language" aria-label="Language">
+      <select id="langSelect" class="lang" title="Language">
         <option value="en">English</option>
         <option value="kn">ಕನ್ನಡ</option>
         <option value="ta" selected>தமிழ்</option>
       </select>
 
-      <!-- Theme toggle -->
-      <label class="theme-toggle" title="Theme">
-        <input type="checkbox" id="themeToggle">
-        <span class="toggle-track">
-          <span class="icon">☀️</span>
-          <span class="icon">🌙</span>
-        </span>
-      </label>
-
       <!-- Auth controls -->
       <button id="btnLogin" class="btn small primary" style="margin-left:8px;">Sign in</button>
       <span id="userBadge" style="display:none; gap:8px; align-items:center; margin-left:8px;">
         <small id="userEmail" class="muted"></small>
-        <span id="statusDot" title="Sync status" style="display:inline-block;width:10px;height:10px;border-radius:50%;margin-left:8px;background:#aaa;border:1px solid currentColor"></span>
         <button id="btnLogout" class="btn small secondary">Sign out</button>
       </span>
     </div>
   </header>
-
-  <!-- Connectivity banner & loading overlay -->
-  <div id="netBanner" class="net-banner" style="display:none"></div>
-  <div id="loadingOverlay" class="loading-overlay" style="display:none" aria-busy="false">
-    <div class="spinner"></div>
-    <span data-i18n="loading">Loading…</span>
-  </div>
 
   <main>
     <!-- HOME: FIELD TILES -->
@@ -220,14 +202,6 @@
     <section id="globalDash" class="tab">
       <h2 class="section-title" data-i18n="global_dashboard">முழுமை டாஷ்போர்டு</h2>
       <div class="stats-grid">
-        <div class="card stat gradient-amber">
-          <h3 data-i18n="today_total">இன்று — மொத்தம்</h3>
-          <p id="gTodayTotal" class="stat-value">₹0</p>
-        </div>
-        <div class="card stat gradient-blue">
-          <h3 data-i18n="today_entries">இன்று — பதிவுகள்</h3>
-          <p id="gTodayCount" class="stat-value">0</p>
-        </div>
         <div class="card stat gradient-green">
           <h3 data-i18n="total_cost_month">இந்த மாதம் — மொத்த செலவு</h3>
           <p id="gTotal" class="stat-value">₹0</p>
@@ -241,12 +215,10 @@
           <p id="gTopCat" class="stat-value">—</p>
         </div>
       </div>
-
       <div class="card">
         <h3 style="margin-top:0" data-i18n="by_category_month">இந்த மாதம் — பகுப்புகளின் படி</h3>
         <div id="gByCat" class="chips-wrap"></div>
       </div>
-
       <canvas id="gBar" width="980" height="260" class="card" style="margin-top:12px"></canvas>
     </section>
 
@@ -260,20 +232,14 @@
         <div class="field"><label data-i18n="field">புலம்</label><select id="aField"></select></div>
         <div class="field full"><label data-i18n="search">தேடல்</label><input type="text" id="aQ" placeholder="பொருள், குறிப்புகள்"/></div>
       </div>
-
       <div class="table-wrap card">
         <table id="allTable">
           <thead>
             <tr>
-              <th data-i18n="date">தேதி</th>
-              <th data-i18n="category">பகுப்பு</th>
-              <th data-i18n="field">புலம்</th>
-              <th data-i18n="material_only">பொருள்</th>
-              <th data-i18n="qty_short">அள.</th>
-              <th data-i18n="normal_short">சா. தொழி.</th>
-              <th data-i18n="special_short">சிற. தொழி.</th>
-              <th data-i18n="cost">செலவு</th>
-              <th data-i18n="notes">குறிப்புகள்</th>
+              <th data-i18n="date">தேதி</th><th data-i18n="category">பகுப்பு</th><th data-i18n="field">புலம்</th>
+              <th data-i18n="material_only">பொருள்</th><th data-i18n="qty_short">அள.</th>
+              <th data-i18n="normal_short">சா. தொழி.</th><th data-i18n="special_short">சிற. தொழி.</th>
+              <th data-i18n="cost">செலவு</th><th data-i18n="notes">குறிப்புகள்</th>
             </tr>
           </thead>
           <tbody></tbody>
@@ -388,13 +354,418 @@
             <button id="btnVerifyLink" class="btn secondary" type="button" style="display:none;">Verify & Link</button>
           </div>
         </div>
+        <!-- Required container for Invisible reCAPTCHA -->
         <div id="recaptcha-container"></div>
         <small id="authErrPhone" class="muted"></small>
       </form>
     </div>
   </div>
 
-  <!-- JS (We will paste this next when you ask) -->
-  <script type="module" src="app.js"></script>
+  <!-- scripts -->
+  <script src="app.js"></script>
+
+  <!-- Firebase + Auth + Firestore (Modular v12) -->
+  <script type="module">
+  /* -------------------- Firebase imports -------------------- */
+  import { initializeApp, getApp, getApps }
+    from "https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js";
+  import {
+    getFirestore, collection, doc, addDoc, updateDoc, deleteDoc, getDoc,
+    query, where, orderBy, onSnapshot, serverTimestamp
+  } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
+  import {
+    // DEBUG: log the raw and sanitized email characters we will send
+    getAuth, onAuthStateChanged, signInWithEmailAndPassword,
+    createUserWithEmailAndPassword, signOut,
+    RecaptchaVerifier, signInWithPhoneNumber, PhoneAuthProvider, linkWithCredential
+  } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-auth.js";
+
+  /* -------------------- Config & init -------------------- */
+  const firebaseConfig = {
+    apiKey: "AIzaSyDhhXdXlQ3aZBnm3chI21b2Ot25iem99Yk",
+    authDomain: "agritracker-cardamon.firebaseapp.com",
+    projectId: "agritracker-cardamon",
+    storageBucket: "agritracker-cardamon.firebasestorage.app",
+    messagingSenderId: "690552538133",
+    appId: "1:690552538133:web:ad11484e35527bf417fa1c"
+  };
+  const app  = getApps().length ? getApp() : initializeApp(firebaseConfig);
+  const db   = getFirestore(app);
+  const auth = getAuth(app);
+  window._db = db;
+
+  /* -------------------- DOM helpers -------------------- */
+  const $ = (id) => document.getElementById(id);
+  const val = (id) => ($(id)?.value ?? '').trim();
+  const txt = (id) => ($(id)?.textContent ?? '').trim();
+  const num = (id) => Number(val(id) || 0);
+
+  const entryForm  = $('entryForm');
+  const catTbody   = document.querySelector('#recordsTable tbody');
+  const allTbody   = document.querySelector('#allTable tbody');
+
+  // Header auth controls
+  const btnLogin  = $('btnLogin');
+  const btnLogout = $('btnLogout');
+  const userBadge = $('userBadge');
+  const userEmail = $('userEmail');
+
+  // Modal + tabs
+  const authModal   = $('authModal');
+  const authClose   = $('authClose');
+  const tabEmail    = $('tabEmail');
+  const tabPhone    = $('tabPhone');
+  const formEmail   = $('authFormEmail');
+  const formPhone   = $('authFormPhone');
+  const authErrEmail= $('authErrEmail');
+  const authErrPhone= $('authErrPhone');
+
+  // Email controls
+  const btnDoLogin  = $('btnDoLogin');
+  const btnDoSignup = $('btnDoSignup');
+  const confirmWrap = $('confirmWrap');
+
+  // Phone controls
+  const phoneInput    = $('authPhone');
+  const btnSendOtp    = $('btnSendOtp');
+  const otpWrap       = $('otpWrap');
+  const otpInput      = $('authOtp');
+  const btnVerifyOtp  = $('btnVerifyOtp');
+  const btnVerifyLink = $('btnVerifyLink');
+  const btnLinkMode   = $('btnLinkMode');
+  let linkMode = false;
+
+  /* -------------------- Simple modal & tab toggles -------------------- */
+  function show(el){ if(el) el.style.display='flex'; }
+  function hide(el){ if(el) el.style.display='none'; }
+  function showBlock(el){ if(el) el.style.display='block'; }
+  function hideBlock(el){ if(el) el.style.display='none'; }
+  function clearAuthErrors(){ if (authErrEmail) authErrEmail.textContent=''; if (authErrPhone) authErrPhone.textContent=''; }
+
+  btnLogin?.addEventListener('click', () => { show(authModal); toEmail(); clearAuthErrors(); });
+  authClose?.addEventListener('click',  () => { hide(authModal); });
+
+  function toEmail(){ showBlock(formEmail); hideBlock(formPhone); tabEmail?.classList.remove('secondary'); tabPhone?.classList.add('secondary'); }
+  function toPhone(){ hideBlock(formEmail); showBlock(formPhone); tabPhone?.classList.remove('secondary'); tabEmail?.classList.add('secondary'); }
+  tabEmail?.addEventListener('click', () => { toEmail(); });
+  tabPhone?.addEventListener('click', () => { toPhone(); });
+
+  /* -------------------- Email/password auth -------------------- */
+  btnDoSignup?.addEventListener('click', () => {
+    const showConfirm = confirmWrap.style.display === 'none';
+    confirmWrap.style.display = showConfirm ? 'block' : 'none';
+    btnDoLogin.dataset.mode = showConfirm ? 'signup' : 'login';
+    btnDoLogin.textContent  = showConfirm ? 'Create account' : 'Sign in';
+    btnDoSignup.textContent = showConfirm ? 'Have an account? Sign in' : 'Create account';
+  });
+
+  
+
+
+// Email/Password submit
+formEmail?.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  clearAuthErrors();
+
+  // Get values from ids (no #)
+  let email = ( $('authEmail')?.value ?? '' );
+  const pass  = ( $('authPassword')?.value ?? '' ).trim();
+
+  // Aggressive sanitize (keeps letters, digits, symbols; strips invisibles & spaces)
+  email = email
+    .normalize('NFKC')                      // normalize Unicode look-alikes
+    .replace(/[\u200B-\u200D\uFEFF]/g, '') // zero-width
+    .replace(/\u00A0/g, ' ')               // NBSP -> space
+    .replace(/\s+/g, '')                   // remove all spaces
+    .trim()
+    .toLowerCase();
+
+  // Debug: see exactly what is going to Firebase
+  console.log('[AUTH] attempting', { email, len: email.length });
+
+  try {
+    if (btnDoLogin.dataset.mode === 'signup') {
+      const pass2 = ( $('authConfirm')?.value ?? '' ).trim();
+      if (pass !== pass2) { authErrEmail.textContent = 'Passwords do not match'; return; }
+      await createUserWithEmailAndPassword(auth, email, pass);
+    } else {
+      await signInWithEmailAndPassword(auth, email, pass);
+    }
+    hide(authModal);
+    formEmail.reset();
+  } catch (err) {
+    console.error('[AUTH] error', err);
+    const map = {
+      'auth/invalid-email':        'Email address is invalid. Please retype it.',
+      'auth/email-already-in-use': 'This email is already registered. Click “Sign in”.',
+      'auth/weak-password':        'Password is too weak. Use at least 6 characters.',
+      'auth/operation-not-allowed':'Email/Password sign-in is disabled in Firebase Console.',
+      'auth/too-many-requests':    'Too many attempts. Please wait and try again.'
+    };
+    authErrEmail.textContent = map[err.code] || err.message || 'Auth failed';
+    }
+  });
+
+  btnLogout?.addEventListener('click', async () => { await signOut(auth); });
+
+  /* -------------------- Phone (OTP) auth & linking -------------------- */
+  function normalizePhone(raw) {
+    let p = (raw || '').replace(/\s+/g, '');
+    if (p.startsWith('+')) return p;
+    if (p.startsWith('0'))  p = p.replace(/^0+/, '');
+    if (!p.startsWith('+91')) p = '+91' + p;
+    return p;
+  }
+
+  let recaptchaVerifier, confirmationResult;
+  function initRecaptcha() {
+    if (recaptchaVerifier) return recaptchaVerifier;
+    recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', { size: 'invisible' });
+    return recaptchaVerifier;
+  }
+
+  btnLinkMode?.addEventListener('click', () => {
+    linkMode = !linkMode;
+    btnLinkMode.textContent = `Link mode: ${linkMode ? 'On' : 'Off'}`;
+    updatePhoneButtons();
+  });
+
+  btnSendOtp?.addEventListener('click', async () => {
+    clearAuthErrors();
+    try {
+      const phone = normalizePhone(phoneInput.value);
+      if (!/^\+\d{10,15}$/.test(phone)) { authErrPhone.textContent='Enter a valid phone number'; return; }
+      initRecaptcha();
+      confirmationResult = await signInWithPhoneNumber(auth, phone, recaptchaVerifier);
+      showBlock(otpWrap);
+      otpInput.focus();
+    } catch (err) {
+      console.error(err);
+      authErrPhone.textContent = err.message || 'Failed to send OTP';
+    }
+  });
+
+  async function verifyOtpAndSignOrLink() {
+    const code = otpInput.value.trim();
+    if (!code) { authErrPhone.textContent='Enter the 6 digit code'; return; }
+    try {
+      if (linkMode && auth.currentUser) {
+        const cred = PhoneAuthProvider.credential(confirmationResult.verificationId, code);
+        await linkWithCredential(auth.currentUser, cred);
+        alert('Phone linked to your account ✅');
+      } else {
+        await confirmationResult.confirm(code);
+      }
+      hide(authModal);
+      formPhone.reset();
+      hideBlock(otpWrap);
+    } catch (err) {
+      console.error(err);
+      authErrPhone.textContent = err.message || 'OTP verification failed';
+    }
+  }
+  btnVerifyOtp?.addEventListener('click', verifyOtpAndSignOrLink);
+  btnVerifyLink?.addEventListener('click', verifyOtpAndSignOrLink);
+
+  function updatePhoneButtons() {
+    if (!btnVerifyOtp || !btnVerifyLink) return;
+    if (linkMode && auth.currentUser) {
+      btnVerifyOtp.style.display = 'none';
+      btnVerifyLink.style.display = 'inline-block';
+    } else {
+      btnVerifyOtp.style.display = 'inline-block';
+      btnVerifyLink.style.display = 'none';
+    }
+  }
+  document.addEventListener('click', updatePhoneButtons);
+
+  /* -------------------- Firestore list & save -------------------- */
+  function enableForm(enable){
+    if (!entryForm) return;
+    [...entryForm.elements].forEach(el => el.disabled = !enable);
+  }
+
+  // Auto-sync readonly category from breadcrumb
+  (() => {
+    const catInput   = $('category');
+    const crumbCatEl = $('crumbCategory');
+    if (!catInput || !crumbCatEl) return;
+    const syncCat = () => { const v = (crumbCatEl.textContent || '').trim(); if (v && catInput.value !== v) catInput.value = v; };
+    syncCat();
+    const obs = new MutationObserver(syncCat);
+    obs.observe(crumbCatEl, { childList:true, characterData:true, subtree:true });
+    document.addEventListener('click', (e) => {
+      const t = e.target;
+      if (t && t.matches?.('.subtab-btn[data-subtab="catAdd"]')) setTimeout(syncCat, 50);
+    });
+  })();
+
+  // Robust submit handler (capturing → survives re-renders)
+  document.addEventListener('submit', async (e) => {
+    if (!(e.target && e.target.id === 'entryForm')) return;
+    e.preventDefault();
+
+    const user = auth.currentUser;
+    if (!user) { alert('Please sign in first.'); return; }
+
+    const dateInput = $('date');
+    if (dateInput && !dateInput.value) dateInput.value = new Date().toISOString().slice(0,10);
+
+    const payload = {
+      uid: user.uid,
+      date: val('date'),
+      category: val('category') || txt('crumbCategory'),
+      field: txt('crumbField2') || txt('fieldNameLabel') || txt('crumbField'),
+      material: val('material'),
+      quantity: num('quantity'),
+      normalLab: num('normalLab'),
+      specialLab: num('specialLab'),
+      cost: num('cost'),
+      notes: val('notes'),
+      updatedAt: serverTimestamp()
+    };
+
+    if (!payload.date || !payload.category) {
+      alert('தேதி மற்றும் பகுப்பு அவசியம். / Date & Category required.');
+      return;
+    }
+
+    const idEl = $('entryId');
+    const id   = idEl?.value || '';
+
+    try {
+      if (id) {
+        await updateDoc(doc(db, 'expenses', id), payload);
+        alert('Updated ✅');
+      } else {
+        payload.createdAt = serverTimestamp();
+        const ref = await addDoc(collection(db, 'expenses'), payload);
+        if (idEl) idEl.value = ref.id;
+        alert('Saved ✅');
+      }
+      e.target.reset();
+      if (idEl) idEl.value = '';
+    } catch (err) {
+      console.error('[ENTRYFORM] save error:', err);
+      alert('Save failed. See Console (F12) for details.');
+    }
+  }, true);
+
+  // Live list with uid filter (may require index: uid ASC, date DESC)
+  let unsubscribe = null;
+  function startListener(uid) {
+    if (unsubscribe) { unsubscribe(); unsubscribe=null; }
+    if (!uid) return;
+
+    const qExp = query(
+      collection(db, 'expenses'),
+      where('uid','==', uid),
+      orderBy('date','desc')
+    );
+
+    unsubscribe = onSnapshot(qExp, (snap) => {
+      const rows = snap.docs.map(x => ({ id: x.id, d: x.data() }));
+
+      // 👉 broadcast rows for app.js (home/global/recordsAll)
+      window.dispatchEvent(new CustomEvent('cloud-rows', { detail: rows }));
+
+      const currentCat = val('category') || txt('crumbCategory');
+      const filtered   = currentCat ? rows.filter(r => r.d.category === currentCat) : rows;
+
+      // Category Records + All Records tables (uid-filtered)
+      renderRows(catTbody, filtered, {updateTotal:true});
+      renderRows(allTbody, rows,     {updateTotal:false});
+    }, (err) => {
+      console.error('onSnapshot error:', err);
+      // If "FAILED_PRECONDITION: The query requires an index", click the console link to auto-create it.
+    });
+  }
+
+  function renderRows(tbody, docs, {updateTotal=false} = {}) {
+    if (!tbody) return;
+    tbody.innerHTML = '';
+    let total = 0;
+
+    docs.forEach(({ id, d }) => {
+      total += Number(d.cost || 0);
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${d.date ?? ''}</td>
+        <td>${d.category ?? ''}</td>
+        <td>${d.field ?? ''}</td>
+        <td>${d.material ?? ''}</td>
+        <td>${(d.quantity ?? '').toString()}</td>
+        <td>${(d.normalLab ?? '').toString()}</td>
+        <td>${(d.specialLab ?? '').toString()}</td>
+        <td>${(d.cost ?? '').toString()}</td>
+        <td>${d.notes ?? ''}</td>
+        <td>
+          <button class="link-btn" data-edit="${id}">Edit</button>
+          <button class="link-btn danger" data-del="${id}">Delete</button>
+        </td>
+      `;
+      tbody.appendChild(tr);
+    });
+
+    if (updateTotal) {
+      const totalCell = $('tableTotal');
+      if (totalCell) totalCell.textContent = `₹${total.toLocaleString('en-IN')}`;
+    }
+
+    // Edit & Delete
+    tbody.querySelectorAll('[data-edit]').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        try {
+          const snap = await getDoc(doc(db, 'expenses', btn.dataset.edit));
+          const data = snap.data(); if (!data) return;
+          const idEl = $('entryId'); if (idEl) idEl.value = btn.dataset.edit;
+          ['date','category','material','quantity','normalLab','specialLab','cost','notes'].forEach(k => {
+            const el = $(k); if (el) el.value = (data[k] ?? '');
+          });
+          alert('Loaded for edit. Make changes and click Save.');
+        } catch (e) { console.error(e); }
+      });
+    });
+    tbody.querySelectorAll('[data-del]').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        if (!confirm('Delete this entry?')) return;
+        try { await deleteDoc(doc(db, 'expenses', btn.dataset.del)); }
+        catch (e) { console.error(e); alert('Delete failed.'); }
+      });
+    });
+  }
+
+  /* -------------------- Auth state wiring -------------------- */
+  onAuthStateChanged(auth, (user) => {
+    if (user) {
+      if (btnLogin)  { btnLogin.style.display='inline-flex'; btnLogin.textContent='Signed in'; }
+      if (userBadge) userBadge.style.display='inline-flex';
+      if (userEmail) userEmail.textContent = user.phoneNumber || user.email || user.uid;
+      enableForm(true);
+      startListener(user.uid);
+    } else {
+      if (btnLogin)  { btnLogin.style.display='inline-flex'; btnLogin.textContent='Sign in'; }
+      if (userBadge) userBadge.style.display='none';
+      enableForm(false);
+      if (unsubscribe) { unsubscribe(); unsubscribe=null; }
+      if (catTbody) catTbody.innerHTML=''; if (allTbody) allTbody.innerHTML='';
+
+      // 👉 clear rows for app.js views (home/global/recordsAll)
+      window.dispatchEvent(new CustomEvent('cloud-rows', { detail: [] }));
+    }
+
+    // keep phone verify buttons in the correct mode
+    (function updatePhoneButtons(){
+      if (!btnVerifyOtp || !btnVerifyLink) return;
+      if (linkMode && auth.currentUser) {
+        btnVerifyOtp.style.display = 'none';
+        btnVerifyLink.style.display = 'inline-block';
+      } else {
+        btnVerifyOtp.style.display = 'inline-block';
+        btnVerifyLink.style.display = 'none';
+      }
+    })();
+  });
+</script>
 </body>
 </html>
