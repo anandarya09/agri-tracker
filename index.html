@@ -28,13 +28,23 @@
     </nav>
 
     <div class="header-actions">
+      
+<!-- Theme toggle -->
+<label class="theme-toggle" title="Theme">
+  <input type="checkbox" id="themeToggle">
+  <span class="toggle-track">
+    <span class="icon">☀️</span>
+    <span class="icon">🌙</span>
+  </span>
+</label>
+
       <button id="exportCsvBtn" class="btn small" data-i18n="export_csv">CSV ஏற்றுமதி</button>
       <button id="exportJsonBtn" class="btn small secondary" data-i18n="backup_json">காப்பு (JSON)</button>
       <label class="btn small outline import-label" data-i18n="restore">
         மீட்டெடு <input type="file" id="importJsonInput" accept="application/json" hidden>
       </label>
       <button id="downloadPngBtn" class="btn small outline" data-i18n="download_png">அறிக்கை (PNG) பதிவிறக்கு</button>
-
+      
       <select id="langSelect" class="lang" title="Language">
         <option value="en">English</option>
         <option value="kn">ಕನ್ನಡ</option>
