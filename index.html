@@ -473,22 +473,34 @@
   });
 
   
+
 formEmail?.addEventListener('submit', async (e) => {
   e.preventDefault();
   clearAuthErrors();
 
-  // --- robust email cleaning (no overzealous regex gatekeeping) ---
+  // --- Aggressive email cleaning and validation ---
   let email = ($('#authEmail')?.value ?? '');
+
+  // Normalize and remove invisible/space characters, then lowercase
   email = email
     .normalize('NFKC')                          // normalize Unicode look-alikes
     .replace(/[\u200B-\u200D\uFEFF]/g, '')     // strip zero-width chars
+    .replace(/\u00A0/g, ' ')                    // non-breaking space -> space
     .replace(/\s+/g, '')                        // remove all spaces
-    .toLowerCase()
-    .trim();
+    .trim()
+    .toLowerCase();
 
   const pass = ($('#authPassword')?.value ?? '').trim();
 
-  // Debug: log what we will send to Firebase (will appear in DevTools console)
+  // Optional: final lightweight shape check (still let Firebase decide)
+  // Accept very broadly; Firebase will be the final judge.
+  if (!email || !email.includes('@') || !email.includes('.')) {
+    authErrEmail.textContent = 'Email address is invalid. Please retype it.';
+    console.log('[AUTH] rejected before call, email=', JSON.stringify(email));
+    return;
+  }
+
+  // Log exactly what we will send
   console.log('[AUTH] attempting', { email, len: email.length });
 
   try {
