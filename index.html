@@ -1,370 +1,368 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>EverGreen Farm Activity & Expense Tracker</title>
-  <meta name="description" content="Track farm activities, labour, materials and costs by field/category with multilingual UI."/>
-  <meta name="theme-color" content="#0b1022"/>
-  <link rel="stylesheet" href="./styles.css"/>
+
+  <!-- styles -->
+  <link rel="stylesheet" href="styles.css"/>
+
+  <!-- optional: quiet the favicon 404 -->
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='45' fill='%2300C853'/></svg>">
 </head>
 <body>
-  <!-- Header -->
+  <!-- HEADER -->
   <header class="app-header glass">
     <div class="brand">
-      <span class="logo-dot" aria-hidden="true"></span>
-      <h1>EverGreen Farm</h1>
+      <div class="logo-dot"></div>
+      <!-- Keep your brand as-is (not auto-translated) -->
+      <h1 id="brandTitle">EverGreen Farm Activity & Expense Tracker</h1>
     </div>
+
+    <nav class="tabs">
+      <button class="tab-btn active" data-tab="homeTiles" data-i18n="home">முகப்பு</button>
+      <button class="tab-btn" data-tab="globalDash" data-i18n="global_dashboard">முழுமை டாஷ்போர்டு</button>
+      <button class="tab-btn" data-tab="recordsAll" data-i18n="all_records">அனைத்து பதிவுகள்</button>
+      <button class="tab-btn" data-tab="settings" data-i18n="settings">அமைப்புகள்</button>
+    </nav>
 
     <div class="header-actions">
-      <!-- Language -->
-      <select id="langSelect" class="lang" aria-label="Language">
+      <button id="exportCsvBtn" class="btn small" data-i18n="export_csv">CSV ஏற்றுமதி</button>
+      <button id="exportJsonBtn" class="btn small secondary" data-i18n="backup_json">காப்பு (JSON)</button>
+      <label class="btn small outline import-label" data-i18n="restore">
+        மீட்டெடு <input type="file" id="importJsonInput" accept="application/json" hidden>
+      </label>
+      <button id="downloadPngBtn" class="btn small outline" data-i18n="download_png">அறிக்கை (PNG) பதிவிறக்கு</button>
+
+      <select id="langSelect" class="lang" title="Language">
         <option value="en">English</option>
-        <option value="ta">தமிழ்</option>
         <option value="kn">ಕನ್ನಡ</option>
+        <option value="ta" selected>தமிழ்</option>
       </select>
 
-      <!-- Auth status -->
-      <div id="authStatus" class="badge" aria-live="polite">Signed out</div>
-      <button id="openAuthBtn" class="btn small" aria-controls="authPanel">Sign in</button>
-      <button id="signOutBtn" class="btn small secondary" style="display:none">Sign out</button>
+      <!-- Auth controls -->
+      <button id="btnLogin" class="btn small primary" style="margin-left:8px;">Sign in</button>
+      <span id="userBadge" style="display:none; gap:8px; align-items:center; margin-left:8px;">
+        <small id="userEmail" class="muted"></small>
+        <button id="btnLogout" class="btn small secondary">Sign out</button>
+      </span>
     </div>
-
-    <!-- Tabs -->
-    <nav class="tabs" role="tablist" aria-label="Main">
-      <button class="tab-btn active" data-tab="homeTiles" role="tab" aria-selected="true" data-i18n="home">Home</button>
-      <button class="tab-btn" data-tab="globalDash" role="tab" aria-selected="false" data-i18n="global_dashboard">Global Dashboard</button>
-      <button class="tab-btn" data-tab="recordsAll" role="tab" aria-selected="false" data-i18n="all_records">All Records</button>
-      <button class="tab-btn" data-tab="settings" role="tab" aria-selected="false" data-i18n="settings">Settings</button>
-    </nav>
   </header>
 
-  <!-- Auth Panel -->
-  <section id="authPanel" class="card" style="max-width:560px;margin:16px auto;display:none">
-    <h2 class="section-title">Account</h2>
-    <div class="subtabs" role="tablist">
-      <button class="subtab-btn active" data-subtab="authSignIn">Email / Password</button>
-      <button class="subtab-btn" data-subtab="authCreate">Create account</button>
-    </div>
-
-    <div id="authSignIn" class="subtab active">
-      <div class="form">
-        <div class="grid">
-          <div class="field full">
-            <label>Email</label>
-            <input type="email" id="loginEmail" autocomplete="username" />
-          </div>
-          <div class="field full">
-            <label>Password</label>
-            <input type="password" id="loginPassword" autocomplete="current-password" />
-          </div>
-        </div>
-        <div class="actions">
-          <button id="signInBtn" class="btn">Sign in</button>
-        </div>
-      </div>
-    </div>
-
-    <div id="authCreate" class="subtab">
-      <div class="form">
-        <div class="grid">
-          <div class="field full">
-            <label>Email</label>
-            <input type="email" id="createEmail" autocomplete="username" />
-          </div>
-          <div class="field full">
-            <label>Password</label>
-            <input type="password" id="createPassword" autocomplete="new-password" />
-          </div>
-          <div class="field full">
-            <label>Confirm password</label>
-            <input type="password" id="createPassword2" autocomplete="new-password" />
-          </div>
-        </div>
-        <div class="actions">
-          <button id="createAccountBtn" class="btn">Create account</button>
-        </div>
-      </div>
-    </div>
-  </section>
-
   <main>
-    <!-- HOME: Fields grid -->
-    <section id="homeTiles" class="tab active" aria-labelledby="Home">
-      <h2 class="section-title" data-i18n="fields_areas">Fields / Areas</h2>
-      <p class="muted" data-i18n="fields_tip">Tip: Add/rename in Settings → Fields.</p>
-      <div id="fieldsGrid" class="tiles-grid" role="list"></div>
+    <!-- HOME: FIELD TILES -->
+    <section id="homeTiles" class="tab active">
+      <h2 class="section-title" data-i18n="fields_areas">புலங்கள் / பகுதிகள்</h2>
+      <div id="fieldsGrid" class="tiles-grid"></div>
+      <p class="muted" data-i18n="fields_tip">குறிப்பு: <strong>அமைப்புகள் → புலங்கள்</strong> பகுதியில் சேர்க்கலாம் அல்லது பெயர் மாற்றலாம்.</p>
     </section>
 
-    <!-- FIELD VIEW: Categories -->
+    <!-- FIELD VIEW: CATEGORY TILES -->
     <section id="fieldView" class="tab">
       <div class="crumbs">
-        <button id="backToHome" class="link-btn" data-i18n="back_to_fields">← Back to Fields</button>
-        <span class="sep">•</span>
-        <span class="crumb-strong" id="crumbField">Field</span>
+        <button id="backToHome" class="link-btn" data-i18n="back_to_fields">← புலங்களுக்கு திரும்ப</button>
+        <span class="sep">/</span>
+        <span id="crumbField" class="crumb-strong"></span>
       </div>
-      <h2 class="section-title" id="fieldNameLabel">Field</h2>
+      <h2 class="section-title">
+        <span data-i18n="categories_in">பகுப்புகள்:</span> <span id="fieldNameLabel"></span>
+      </h2>
       <div id="categoriesGrid" class="tiles-grid"></div>
     </section>
 
-    <!-- CATEGORY VIEW: Dashboard + Records -->
+    <!-- CATEGORY VIEW -->
     <section id="categoryView" class="tab">
       <div class="crumbs">
-        <button id="backToField" class="link-btn" data-i18n="back_to_categories">← Back to Categories</button>
-        <span class="sep">•</span><span id="crumbField2">Field</span>
-        <span class="sep">/</span><span class="crumb-strong" id="crumbCategory">Category</span>
+        <button id="backToField" class="link-btn" data-i18n="back_to_categories">← பகுப்புகளுக்கு திரும்ப</button>
+        <span class="sep">/</span>
+        <span id="crumbField2"></span>
+        <span class="sep">/</span>
+        <span id="crumbCategory" class="crumb-strong"></span>
       </div>
 
-      <div class="subtabs">
-        <button class="subtab-btn active" data-subtab="catDash" data-i18n="dashboard">Dashboard</button>
-        <button class="subtab-btn" data-subtab="catRecords" data-i18n="records">Records</button>
-      </div>
+      <nav class="subtabs">
+        <button class="subtab-btn active" data-subtab="catDash" data-i18n="dashboard">டாஷ்போர்டு</button>
+        <button class="subtab-btn" data-subtab="catAdd" data-i18n="add_entry">பதிவு சேர்</button>
+        <button class="subtab-btn" data-subtab="catRecords" data-i18n="records">பதிவுகள்</button>
+      </nav>
 
-      <!-- Subtab: Category Dashboard -->
-      <div id="catDash" class="subtab active">
+      <!-- Category Dashboard -->
+      <section id="catDash" class="subtab active">
         <div class="stats-grid">
           <div class="card stat gradient-green">
-            <h3 data-i18n="total_cost_month">Total Cost (This Month)</h3>
-            <div class="stat-value" id="catTotalCost">₹0</div>
+            <h3 data-i18n="total_cost_month">இந்த மாதம் — மொத்த செலவு</h3>
+            <p id="catTotalCost" class="stat-value">₹0</p>
           </div>
           <div class="card stat gradient-cyan">
-            <h3 data-i18n="entries_month">Entries (This Month)</h3>
-            <div class="stat-value" id="catEntryCount">0</div>
+            <h3 data-i18n="entries_month">இந்த மாதம் — பதிவுகள்</h3>
+            <p id="catEntryCount" class="stat-value">0</p>
           </div>
           <div class="card stat gradient-purple">
-            <h3 data-i18n="avg_per_entry">Average Cost / Entry</h3>
-            <div class="stat-value" id="catAvgCost">₹0</div>
+            <h3 data-i18n="avg_per_entry">ஒரு பதிவுக்கான சராசரி</h3>
+            <p id="catAvgCost" class="stat-value">₹0</p>
           </div>
         </div>
-        <div class="card" style="margin-top:12px">
-          <canvas id="catBar" style="width:100%;height:260px"></canvas>
-        </div>
-      </div>
+        <canvas id="catBar" width="920" height="220" class="card" style="margin-top:10px"></canvas>
+      </section>
 
-      <!-- Subtab: Category Records (Add + table) -->
-      <div id="catRecords" class="subtab">
-        <h3 class="section-title" data-i18n="add_entry">Add Entry</h3>
-        <div class="card form">
+      <!-- Add Entry (Category context) -->
+      <section id="catAdd" class="subtab">
+        <form id="entryForm" class="card form">
           <input type="hidden" id="entryId"/>
+
           <div class="grid">
             <div class="field">
-              <label data-i18n="date">Date</label>
-              <input type="date" id="date"/>
+              <label data-i18n="category">பகுப்பு</label>
+              <input type="text" id="category" readonly/>
             </div>
+
             <div class="field">
-              <label data-i18n="category">Category</label>
-              <select id="category"></select>
+              <label data-i18n="date">தேதி</label>
+              <input type="date" id="date" required/>
             </div>
-            <div class="field">
-              <label data-i18n="material">Material</label>
-              <input type="text" id="material" placeholder="Urea / Neem oil / Spare"/>
+
+            <div class="field full">
+              <label data-i18n="material">பொருள் (இருந்தால்)</label>
+              <input type="text" id="material" placeholder="யூரியா / நீம் எண்ணெய் / ஸ்பேர்"/>
             </div>
+
             <div class="field">
-              <label data-i18n="quantity">Quantity</label>
+              <label data-i18n="quantity">அளவு</label>
               <input type="number" id="quantity" step="0.01" min="0"/>
             </div>
-            <div class="field" id="materialRateWrap" style="display:none">
-              <label>Material Rate (₹ / unit)</label>
-              <input type="number" id="materialRate" step="0.01" min="0"/>
-            </div>
+
             <div class="field">
-              <label data-i18n="normal_lab">Normal Labourers (count)</label>
+              <label data-i18n="normal_lab">சாதாரண தொழிலாளர்கள் (எண்)</label>
               <input type="number" id="normalLab" step="1" min="0"/>
             </div>
+
             <div class="field">
-              <label data-i18n="special_lab">Special Labourers (count)</label>
+              <label data-i18n="special_lab">சிறப்பு தொழிலாளர்கள் (எண்)</label>
               <input type="number" id="specialLab" step="1" min="0"/>
             </div>
+
             <div class="field">
-              <label data-i18n="cost">Cost</label>
+              <label data-i18n="cost">செலவு</label>
               <input type="number" id="cost" step="0.01" min="0"/>
-            </div>
-            <div class="field full">
-              <label data-i18n="notes">Notes</label>
-              <input type="text" id="notes" placeholder="material, notes"/>
+              <small id="autoCostHint" class="muted"></small>
             </div>
           </div>
-          <div id="autoCostHint" class="muted" style="margin-top:8px"></div>
+
+          <div class="field full">
+            <label data-i18n="notes">குறிப்புகள்</label>
+            <textarea id="notes" rows="3" placeholder="விற்பனையாளர், பில் எண், வானிலை…"></textarea>
+          </div>
+
           <div class="actions">
-            <button id="saveBtn" class="btn" data-i18n="save">Save</button>
-            <button id="resetBtn" class="btn secondary" data-i18n="reset">Reset</button>
-            <button id="deleteBtn" class="btn outline" style="display:none">Delete</button>
+            <button type="submit" id="saveBtn" class="btn" data-i18n="save">சேமிக்க</button>
+            <button type="button" id="resetBtn" class="btn secondary" data-i18n="reset">ரீசெட்</button>
           </div>
+        </form>
+      </section>
+
+      <!-- Category Records -->
+      <section id="catRecords" class="subtab">
+        <div class="card filters">
+          <div class="field"><label data-i18n="from">இருந்து</label><input type="date" id="filterFrom"/></div>
+          <div class="field"><label data-i18n="to">வரை</label><input type="date" id="filterTo"/></div>
+          <div class="field full"><label data-i18n="search">தேடல்</label><input type="text" id="filterSearch" placeholder="பொருள், குறிப்புகள்"/></div>
         </div>
 
-        <h3 class="section-title" style="margin-top:18px" data-i18n="records">Records</h3>
-        <div class="filters inline-grid-3">
-          <div>
-            <label data-i18n="from">From</label>
-            <input type="date" id="filterFrom"/>
-          </div>
-          <div>
-            <label data-i18n="to">To</label>
-            <input type="date" id="filterTo"/>
-          </div>
-          <div>
-            <label>Search</label>
-            <input type="text" id="filterSearch" placeholder="material, notes"/>
-          </div>
-        </div>
         <div class="table-wrap card">
-          <table aria-label="Category records">
+          <table id="recordsTable">
             <thead>
               <tr>
-                <th scope="col" data-i18n="date">Date</th>
-                <th scope="col" data-i18n="field">Field</th>
-                <th scope="col" data-i18n="category">Category</th>
-                <th scope="col" data-i18n="material">Material</th>
-                <th scope="col" data-i18n="quantity">Qty</th>
-                <th scope="col">Rate</th>
-                <th scope="col" data-i18n="cost">Cost</th>
-                <th scope="col" data-i18n="notes">Notes</th>
-                <th scope="col"></th>
+                <th data-i18n="date">தேதி</th>
+                <th data-i18n="category">பகுப்பு</th>
+                <th data-i18n="field">புலம்</th>
+                <th data-i18n="material_only">பொருள்</th>
+                <th data-i18n="qty_short">அள.</th>
+                <th data-i18n="normal_short">சா. தொழி.</th>
+                <th data-i18n="special_short">சிற. தொழி.</th>
+                <th data-i18n="cost">செலவு</th>
+                <th data-i18n="notes">குறிப்புகள்</th>
+                <th></th>
               </tr>
             </thead>
-            <tbody id="catTbody"></tbody>
+            <tbody></tbody>
             <tfoot>
-              <tr><td colspan="6" class="right strong" data-i18n="total">Total</td><td id="catTotal" class="strong"></td><td colspan="2"></td></tr>
+              <tr>
+                <td colspan="7" class="right strong" data-i18n="total">மொத்தம்</td>
+                <td id="tableTotal">₹0</td>
+                <td colspan="2"></td>
+              </tr>
             </tfoot>
           </table>
         </div>
-      </div>
+      </section>
     </section>
 
-    <!-- GLOBAL DASH -->
+    <!-- GLOBAL DASHBOARD -->
     <section id="globalDash" class="tab">
+      <h2 class="section-title" data-i18n="global_dashboard">முழுமை டாஷ்போர்டு</h2>
       <div class="stats-grid">
         <div class="card stat gradient-green">
-          <h3 data-i18n="total_cost_month">Total Cost (This Month)</h3>
-          <div id="gTotal" class="stat-value">₹0</div>
+          <h3 data-i18n="total_cost_month">இந்த மாதம் — மொத்த செலவு</h3>
+          <p id="gTotal" class="stat-value">₹0</p>
         </div>
         <div class="card stat gradient-cyan">
-          <h3 data-i18n="entries_month">Entries (This Month)</h3>
-          <div id="gCount" class="stat-value">0</div>
+          <h3 data-i18n="entries_month">இந்த மாதம் — பதிவுகள்</h3>
+          <p id="gCount" class="stat-value">0</p>
         </div>
         <div class="card stat gradient-purple">
-          <h3 data-i18n="top_category">Top Category</h3>
-          <div id="gTopCat" class="stat-value">—</div>
+          <h3 data-i18n="top_category">அதிகமாக செலவான பகுப்பு</h3>
+          <p id="gTopCat" class="stat-value">—</p>
         </div>
       </div>
-
-      <div class="card" style="margin-top:12px">
-        <div id="gByCat" class="chips-wrap" aria-live="polite"></div>
-        <canvas id="gBar" style="width:100%;height:280px;margin-top:8px"></canvas>
+      <div class="card">
+        <h3 style="margin-top:0" data-i18n="by_category_month">இந்த மாதம் — பகுப்புகளின் படி</h3>
+        <div id="gByCat" class="chips-wrap"></div>
       </div>
-
-      <div class="actions" style="margin-top:12px">
-        <button id="exportCsvBtn" class="btn" data-i18n="export_csv">Export CSV</button>
-        <button id="exportJsonBtn" class="btn secondary" data-i18n="backup_json">Backup (JSON)</button>
-        <label class="btn outline" for="importJsonInput" style="cursor:pointer" data-i18n="restore">Restore</label>
-        <input id="importJsonInput" type="file" accept="application/json" style="display:none"/>
-        <button id="downloadPngBtn" class="btn outline" data-i18n="download_png">Download Report (PNG)</button>
-      </div>
+      <canvas id="gBar" width="980" height="260" class="card" style="margin-top:12px"></canvas>
     </section>
 
     <!-- ALL RECORDS -->
     <section id="recordsAll" class="tab">
-      <h2 class="section-title" data-i18n="all_records">All Records</h2>
-      <div class="filters">
-        <div class="inline-grid-3">
-          <div>
-            <label data-i18n="from">From</label>
-            <input type="date" id="aFrom"/>
-          </div>
-          <div>
-            <label data-i18n="to">To</label>
-            <input type="date" id="aTo"/>
-          </div>
-          <div>
-            <label data-i18n="category">Category</label>
-            <select id="aCat"></select>
-          </div>
-          <div>
-            <label data-i18n="field">Field</label>
-            <select id="aField"></select>
-          </div>
-          <div class="align-end">
-            <input type="text" id="aQ" placeholder="material, notes"/>
-          </div>
-        </div>
+      <h2 class="section-title" data-i18n="all_records">அனைத்து பதிவுகள்</h2>
+      <div class="card filters">
+        <div class="field"><label data-i18n="from">இருந்து</label><input type="date" id="aFrom"/></div>
+        <div class="field"><label data-i18n="to">வரை</label><input type="date" id="aTo"/></div>
+        <div class="field"><label data-i18n="category">பகுப்பு</label><select id="aCat"></select></div>
+        <div class="field"><label data-i18n="field">புலம்</label><select id="aField"></select></div>
+        <div class="field full"><label data-i18n="search">தேடல்</label><input type="text" id="aQ" placeholder="பொருள், குறிப்புகள்"/></div>
       </div>
       <div class="table-wrap card">
-        <table aria-label="All records">
+        <table id="allTable">
           <thead>
             <tr>
-              <th scope="col" data-i18n="date">Date</th>
-              <th scope="col" data-i18n="field">Field</th>
-              <th scope="col" data-i18n="category">Category</th>
-              <th scope="col" data-i18n="material">Material</th>
-              <th scope="col" data-i18n="quantity">Qty</th>
-              <th scope="col">Rate</th>
-              <th scope="col" data-i18n="cost">Cost</th>
-              <th scope="col" data-i18n="notes">Notes</th>
-              <th scope="col"></th>
+              <th data-i18n="date">தேதி</th><th data-i18n="category">பகுப்பு</th><th data-i18n="field">புலம்</th>
+              <th data-i18n="material_only">பொருள்</th><th data-i18n="qty_short">அள.</th>
+              <th data-i18n="normal_short">சா. தொழி.</th><th data-i18n="special_short">சிற. தொழி.</th>
+              <th data-i18n="cost">செலவு</th><th data-i18n="notes">குறிப்புகள்</th>
             </tr>
           </thead>
-          <tbody id="allTbody"></tbody>
-          <tfoot>
-            <tr><td colspan="6" class="right strong" data-i18n="total">Total</td><td id="allTotal" class="strong"></td><td colspan="2"></td></tr>
-          </tfoot>
+          <tbody></tbody>
         </table>
       </div>
     </section>
 
     <!-- SETTINGS -->
     <section id="settings" class="tab">
-      <h2 class="section-title" data-i18n="settings">Settings</h2>
+      <h2 class="section-title" data-i18n="settings">அமைப்புகள்</h2>
 
       <div class="card settings-block">
-        <h3 data-i18n="fields_areas">Fields / Areas</h3>
+        <h3 data-i18n="fields_areas">புலங்கள் / பகுதிகள்</h3>
         <div class="inline-row">
-          <input id="newFieldName" placeholder="New field name"/>
-          <button id="addFieldBtn" class="btn small" data-i18n="add_field">Add Field</button>
+          <input type="text" id="newFieldName" placeholder="எ.கா., மலைப் பகுதி"/>
+          <button id="addFieldBtn" class="btn" data-i18n="add_field">புதிய புலம்</button>
         </div>
         <ul id="fieldsList" class="list-manage"></ul>
       </div>
 
       <div class="card settings-block">
-        <h3 data-i18n="categories">Categories</h3>
-        <div class="inline-row">
-          <input id="newCatName" placeholder="Name (e.g., Fertilizer)"/>
-          <input id="newCatIcon" placeholder="Emoji/icon (e.g., 🧪)" style="width:120px"/>
-          <input id="newCatColor" type="color" value="#7dd3fc" style="width:120px"/>
-          <button id="addCatBtn" class="btn small" data-i18n="add_category">Add Category</button>
+        <h3 data-i18n="categories">பகுப்புகள்</h3>
+        <div class="inline-grid-3">
+          <input type="text" id="newCatName" placeholder="எ.கா., களையை எடுப்பு"/>
+          <input type="text" id="newCatIcon" placeholder="எமோஜி (🌿)"/>
+          <input type="color" id="newCatColor" value="#7dd3fc"/>
+          <button id="addCatBtn" class="btn" data-i18n="add_category">புதிய பகுப்பு</button>
         </div>
         <ul id="catsList" class="list-manage"></ul>
       </div>
 
       <div class="card settings-block">
-        <h3 data-i18n="general">General</h3>
-        <div class="grid">
-          <div class="field">
-            <label data-i18n="rate_normal">Normal Labourer Rate (₹ / person)</label>
-            <input type="number" id="rateNormal" step="0.01" min="0"/>
+        <h3 data-i18n="general">பொது</h3>
+        <div class="inline-grid-3">
+          <div>
+            <label data-i18n="rate_normal">சாதாரண தொழிலாளர் காசு (₹ / பேர்)</label>
+            <input type="number" id="rateNormal" step="1" min="0" placeholder="500"/>
           </div>
-          <div class="field">
-            <label data-i18n="rate_special">Special Labourer Rate (₹ / person)</label>
-            <input type="number" id="rateSpecial" step="0.01" min="0"/>
+          <div>
+            <label data-i18n="rate_special">சிறப்பு தொழிலாளர் காசு (₹ / பேர்)</label>
+            <input type="number" id="rateSpecial" step="1" min="0" placeholder="700"/>
           </div>
-          <div class="field">
-            <label data-i18n="currency_symbol">Currency Symbol</label>
-            <input type="text" id="settingsCurrency" maxlength="3" value="₹"/>
+          <div>
+            <label data-i18n="currency_symbol">நாணய குறி</label>
+            <input type="text" id="settingsCurrency" maxlength="3" placeholder="₹"/>
           </div>
         </div>
-        <p class="muted" data-i18n="calc_hint">Cost = Normal × Normal Rate + Special × Special Rate (editable).</p>
-        <div class="actions">
-          <button id="saveSettingsBtn" class="btn">Save</button>
+        <div class="inline-row" style="margin-top:10px">
+          <button id="saveSettingsBtn" class="btn" data-i18n="save">சேமிக்க</button>
         </div>
+        <p class="muted" data-i18n="calc_hint">
+          செலவு = சாதாரண × சாதாரண காசு + சிறப்பு × சிறப்பு காசு (தேவையெனில் கையால் மாற்றலாம்).
+        </p>
       </div>
     </section>
   </main>
 
-  <footer>For your farm • Local + Firestore sync</footer>
+  <footer>
+    <small data-i18n="footer_note">உங்கள் பண்ணைக்கு • உள்ளூர் தரவு</small>
+  </footer>
 
-  <!-- App boot (only one module; it imports firebase.js internally) -->
-  <script type="module" src="./app.js"></script>
-</body>
-</html>
+  <!-- Auth Modal (Email/Password + Phone OTP) -->
+  <div id="authModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:9999; align-items:center; justify-content:center;">
+    <div style="background:#0f172a; color:#e2e8f0; padding:20px; border-radius:12px; width:360px; box-shadow:0 10px 30px rgba(0,0,0,.4)">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+        <h3 style="margin:0">Account</h3>
+        <button id="authClose" class="btn small secondary">✕</button>
+      </div>
+
+      <nav style="display:flex; gap:8px; margin-bottom:10px;">
+        <button id="tabEmail" class="btn small">Email / Password</button>
+        <button id="tabPhone" class="btn small secondary">Phone (OTP)</button>
+      </nav>
+
+      <!-- Email form -->
+      <form id="authFormEmail">
+        <div class="field">
+          <label>Email</label>
+          <input type="email" id="authEmail" required placeholder="you@example.com" />
+        </div>
+        <div class="field" style="margin-top:8px;">
+          <label>Password</label>
+          <input type="password" id="authPassword" required placeholder="••••••••" />
+        </div>
+        <div id="confirmWrap" class="field" style="margin-top:8px; display:none;">
+          <label>Confirm password</label>
+          <input type="password" id="authConfirm" placeholder="••••••••" />
+        </div>
+
+        <div style="display:flex; gap:8px; margin-top:12px;">
+          <button id="btnDoLogin"  class="btn"           type="submit" data-mode="login">Sign in</button>
+          <button id="btnDoSignup" class="btn secondary" type="button">Create account</button>
+        </div>
+        <small id="authErrEmail" class="muted"></small>
+      </form>
+
+      <!-- Phone OTP form -->
+      <form id="authFormPhone" style="display:none; margin-top:8px;">
+        <div class="field">
+          <label>Mobile number (India)</label>
+          <input type="tel" id="authPhone" placeholder="+91XXXXXXXXXX or 9XXXXXXXXX" />
+        </div>
+        <div style="display:flex; gap:8px; margin-top:10px;">
+          <button id="btnSendOtp" class="btn" type="button">Send OTP</button>
+          <button id="btnLinkMode" class="btn secondary" type="button" title="If signed in with email, link this phone to your account">Link mode: Off</button>
+        </div>
+        <div id="otpWrap" class="field" style="display:none; margin-top:10px;">
+          <label>Enter OTP</label>
+          <input type="text" id="authOtp" inputmode="numeric" maxlength="6" placeholder="6 digit code" />
+          <div style="display:flex; gap:8px; margin-top:10px;">
+            <button id="btnVerifyOtp"  class="btn"           type="button">Verify & Sign in</button>
+            <button id="btnVerifyLink" class="btn secondary" type="button" style="display:none;">Verify & Link</button>
+          </div>
+        </div>
+        <!-- Required container for Invisible reCAPTCHA -->
+        <div id="recaptcha-container"></div>
+        <small id="authErrPhone" class="muted"></small>
+      </form>
+    </div>
+  </div>
+
+  <!-- scripts -->
+  <script src="app.js"></script>
 
   <!-- Firebase + Auth + Firestore (Modular v12) -->
   <script type="module">
