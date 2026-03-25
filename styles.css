@@ -118,7 +118,7 @@ body{
   gap: 12px;
   justify-content: flex-end;     /* Align to RIGHT */
   padding-right: 4px;
-  margin-top: -22px;
+  margin-top: -30px;
 }
 
 .row-actions .btn,
