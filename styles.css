@@ -23,6 +23,9 @@ body{
    Second Row: Navigation Tabs
    Third Row (Right-aligned): Action Buttons
    =========================================================== */
+/* ===========================================================
+   FIXED 3-ROW HEADER: Perfect alignment left/right
+   =========================================================== */
 
 .app-header {
   position: sticky;
@@ -34,69 +37,71 @@ body{
   backdrop-filter: blur(8px);
 
   display: flex;
-  flex-direction: column;   /* Stack rows vertically */
+  flex-direction: column;
   gap: 10px;
 }
 
-/* ---------------- FIRST ROW ---------------- */
-.header-top {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+/* UNIVERSAL ROW STYLE */
+.header-row {
   width: 100%;
+  display: flex;
+  align-items: center;
 }
 
-/* Left: Big Title */
+/* =============== TOP ROW =============== */
+.top-row {
+  justify-content: space-between;
+}
+
 .brand {
   display: flex;
   align-items: center;
   gap: 10px;
+  flex-shrink: 0;
 }
 
 .brand h1 {
   margin: 0;
-  font-size: 1.5rem;    /* Increased */
-  font-weight: 900;     /* Bolder */
-  letter-spacing: .5px;
+  font-size: 1.6rem;
+  font-weight: 900;
+  letter-spacing: 0.4px;
   white-space: nowrap;
-  color: var(--text);
 }
 
-/* Right: Language + Login Control */
-.header-right {
+/* RIGHT SIDE OF TOP ROW */
+.top-right {
   display: flex;
   align-items: center;
   gap: 10px;
+  flex-shrink: 0;
 }
 
-#langSelect {
+/* Language select */
+.lang {
   padding: 6px 10px;
-  max-width: 130px;
   border-radius: 8px;
+  max-width: 130px;
   background: #0c1430;
   color: #e3ecff;
   border: 1px solid var(--border);
 }
 
-/* Login badge */
 #userBadge {
-  display: inline-flex;
+  display: flex;
   align-items: center;
   gap: 6px;
 }
 
 #userEmail {
-  max-width: 130px;
-  text-overflow: ellipsis;
+  max-width: 140px;
   overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-/* ---------------- SECOND ROW ---------------- */
+/* =============== NAVIGATION ROW =============== */
 .nav-row {
-  display: flex;
   gap: 10px;
-  flex-wrap: wrap;
 }
 
 .tab-btn {
@@ -105,7 +110,6 @@ body{
   background: #cdd5ff;
   font-weight: 700;
   border: 1px solid #c2cbff33;
-  color: #0b1220;
   white-space: nowrap;
 }
 
@@ -114,19 +118,19 @@ body{
   color: #071126;
 }
 
-/* ---------------- THIRD ROW ---------------- */
+/* =============== ACTION ROW (RIGHT ALIGNED) =============== */
 .action-row {
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
   justify-content: flex-end;
-  width: 100%;
+  gap: 10px;
 }
 
 .action-row .btn,
-.action-row label,
-.action-row button {
+.action-row label {
   white-space: nowrap;
+}
+
+.action-row label input {
+  display: none;
 }
 /* Buttons */
 .btn{ background:linear-gradient(135deg,#72e7a6,#6fd3ff); border:none; color:#05101b; padding:10px 14px;
