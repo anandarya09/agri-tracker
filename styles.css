@@ -18,67 +18,56 @@ body{
 }
 
 /* ===========================================================
-   PERFECTED HEADER LAYOUT (2-ROW DESIGN)
-   Top Row: Title + Language + Sign-in
-   Second Row: Navigation Tabs
-   Third Row (Right-aligned): Action Buttons
-   =========================================================== */
-/* ===========================================================
-   FIXED 3-ROW HEADER: Perfect alignment left/right
+   PERFECT 3-ROW HEADER LAYOUT (FINAL VERSION)
    =========================================================== */
 
 .app-header {
   position: sticky;
   top: 0;
   z-index: 10;
-  padding: 14px 18px;
+  padding: 16px 20px;
   border-bottom: 1px solid var(--border);
   background: rgba(18, 26, 54, .65);
   backdrop-filter: blur(8px);
-
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 14px;
 }
 
 /* UNIVERSAL ROW STYLE */
-.header-row {
+.row {
   width: 100%;
   display: flex;
   align-items: center;
 }
 
-/* =============== TOP ROW =============== */
-.top-row {  
-padding-right: 10px;      /* Avoid sticking to right edge */
-padding-left: 2px; 
+/* -------------------- ROW 1 --------------------------- */
+.row-top {
+  justify-content: space-between;
 }
 
+/* LEFT: TITLE */
 .brand {
   display: flex;
   align-items: center;
   gap: 10px;
-  flex-shrink: 0;
 }
 
 .brand h1 {
   margin: 0;
-  font-size: 1.6rem;
+  font-size: 1.7rem;
   font-weight: 900;
-  letter-spacing: 0.4px;
   white-space: nowrap;
 }
 
-/* RIGHT SIDE OF TOP ROW */
-.top-right {
+/* RIGHT: LANG + LOGIN */
+.controls-right {
   display: flex;
   align-items: center;
   gap: 12px;
-  flex-shrink: 0;
   white-space: nowrap;
 }
 
-/* Language select */
 .lang {
   padding: 6px 10px;
   border-radius: 8px;
@@ -88,11 +77,11 @@ padding-left: 2px;
   border: 1px solid var(--border);
 }
 
+/* Login Badge */
 #userBadge {
-  display: flex;!important;
+  display: flex !important;
   align-items: center;
   gap: 8px;
-  white-space: nowrap;
 }
 
 #userEmail {
@@ -101,15 +90,17 @@ padding-left: 2px;
   white-space: nowrap;
 }
 
-/* =============== NAVIGATION ROW =============== */
-.nav-row {
-  gap: 10px;
+/* -------------------- ROW 2 (NAVIGATION) --------------------------- */
+
+.row-nav {
+  display: flex;
+  gap: 12px;
 }
 
 .tab-btn {
-  padding: 8px 16px;
-  border-radius: 30px;
+  padding: 8px 18px;
   background: #cdd5ff;
+  border-radius: 30px;
   font-weight: 700;
   border: 1px solid #c2cbff33;
   white-space: nowrap;
@@ -120,22 +111,18 @@ padding-left: 2px;
   color: #071126;
 }
 
-/* =============== ACTION ROW (RIGHT ALIGNED) =============== */
-.action-row {
-display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
-  justify-content: flex-start;     /* All buttons align left */
-  margin-left: 4px; 
+/* -------------------- ROW 3 (ACTIONS) --------------------------- */
+
+.row-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;     /* Align to RIGHT */
+  padding-right: 4px;
 }
 
-.action-row .btn,
-.action-row label {
+.row-actions .btn,
+.row-actions label {
   white-space: nowrap;
-}
-
-.action-row label input {
-  display: none;
 }
 /* Buttons */
 .btn{ background:linear-gradient(135deg,#72e7a6,#6fd3ff); border:none; color:#05101b; padding:10px 14px;
