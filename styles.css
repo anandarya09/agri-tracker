@@ -49,8 +49,9 @@ body{
 }
 
 /* =============== TOP ROW =============== */
-.top-row {
-  justify-content: space-between;
+.top-row {  
+padding-right: 10px;      /* Avoid sticking to right edge */
+padding-left: 2px; 
 }
 
 .brand {
@@ -72,8 +73,9 @@ body{
 .top-right {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   flex-shrink: 0;
+  white-space: nowrap;
 }
 
 /* Language select */
@@ -87,15 +89,15 @@ body{
 }
 
 #userBadge {
-  display: flex;
+  display: flex;!important;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
+  white-space: nowrap;
 }
 
 #userEmail {
-  max-width: 140px;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  max-width: none;
+  overflow: visible;
   white-space: nowrap;
 }
 
@@ -120,8 +122,11 @@ body{
 
 /* =============== ACTION ROW (RIGHT ALIGNED) =============== */
 .action-row {
-  justify-content: flex-end;
+display: flex;
   gap: 10px;
+  flex-wrap: wrap;
+  justify-content: flex-start;     /* All buttons align left */
+  margin-left: 4px; 
 }
 
 .action-row .btn,
