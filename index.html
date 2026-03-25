@@ -15,14 +15,15 @@
   <!-- HEADER -->
   <header class="app-header glass">
    
- <!-- TOP ROW -->
-  <div class="header-row top-row">
+
+  <!-- ROW 1: Title left, Controls right -->
+  <div class="row row-top">
     <div class="brand">
       <div class="logo-dot"></div>
       <h1>EverGreen Farm Activity &amp; Expense Tracker</h1>
     </div>
 
-    <div class="top-right">
+    <div class="controls-right">
       <select id="langSelect" class="lang">
         <option value="en">English</option>
         <option value="kn">ಕನ್ನಡ</option>
@@ -32,25 +33,28 @@
       <button id="btnLogin" class="btn small primary">Sign in</button>
 
       <span id="userBadge" style="display:none;">
-        <small id="userEmail"></small>
+        <span id="userEmail"></span>
         <button id="btnLogout" class="btn small secondary">Sign out</button>
       </span>
     </div>
   </div>
 
-  <!-- SECOND ROW — Navigation Tabs -->
-  <div class="header-row nav-row">
+  <!-- ROW 2: Navigation -->
+  <div class="row row-nav">
     <button class="tab-btn active" data-tab="homeTiles">Home</button>
     <button class="tab-btn" data-tab="globalDash">Global Dashboard</button>
     <button class="tab-btn" data-tab="recordsAll">All Records</button>
     <button class="tab-btn" data-tab="settings">Settings</button>
   </div>
 
-  <!-- THIRD ROW — Actions -->
-  <div class="header-row action-row">
+  <!-- ROW 3: Action Buttons -->
+  <div class="row row-actions">
     <button id="exportCsvBtn" class="btn small">Export CSV</button>
     <button id="exportJsonBtn" class="btn small secondary">Backup (JSON)</button>
-    <label class="btn small outline">Restore<input type="file" id="importJsonInput" hidden></label>
+    <label class="btn small outline">
+      Restore
+      <input type="file" id="importJsonInput" hidden />
+    </label>
     <button id="downloadPngBtn" class="btn small outline">Download Report (PNG)</button>
   </div>
   </header>
