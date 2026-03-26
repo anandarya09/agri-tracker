@@ -14,49 +14,40 @@
 <body>
   <!-- HEADER -->
   <header class="app-header glass">
-   
-
-  <!-- ROW 1: Title left, Controls right -->
-  <div class="row row-top">
     <div class="brand">
       <div class="logo-dot"></div>
-      <h1>EverGreen Farm Activity &amp; Expense Tracker</h1>
+      <!-- Keep your brand as-is (not auto-translated) -->
+      <h1 id="brandTitle">EverGreen Farm Activity & Expense Tracker</h1>
     </div>
 
-    <div class="controls-right">
-      <select id="langSelect" class="lang">
+    <nav class="tabs">
+      <button class="tab-btn active" data-tab="homeTiles" data-i18n="home">முகப்பு</button>
+      <button class="tab-btn" data-tab="globalDash" data-i18n="global_dashboard">முழுமை டாஷ்போர்டு</button>
+      <button class="tab-btn" data-tab="recordsAll" data-i18n="all_records">அனைத்து பதிவுகள்</button>
+      <button class="tab-btn" data-tab="settings" data-i18n="settings">அமைப்புகள்</button>
+    </nav>
+
+    <div class="header-actions">
+      <button id="exportCsvBtn" class="btn small" data-i18n="export_csv">CSV ஏற்றுமதி</button>
+      <button id="exportJsonBtn" class="btn small secondary" data-i18n="backup_json">காப்பு (JSON)</button>
+      <label class="btn small outline import-label" data-i18n="restore">
+        மீட்டெடு <input type="file" id="importJsonInput" accept="application/json" hidden>
+      </label>
+      <button id="downloadPngBtn" class="btn small outline" data-i18n="download_png">அறிக்கை (PNG) பதிவிறக்கு</button>
+
+      <select id="langSelect" class="lang" title="Language">
         <option value="en">English</option>
         <option value="kn">ಕನ್ನಡ</option>
         <option value="ta" selected>தமிழ்</option>
       </select>
 
-      <button id="btnLogin" class="btn small primary">Sign in</button>
-
-      <span id="userBadge" style="display:none;">
-        <span id="userEmail"></span>
+      <!-- Auth controls -->
+      <button id="btnLogin" class="btn small primary" style="margin-left:8px;">Sign in</button>
+      <span id="userBadge" style="display:none; gap:8px; align-items:center; margin-left:8px;">
+        <small id="userEmail" class="muted"></small>
         <button id="btnLogout" class="btn small secondary">Sign out</button>
       </span>
     </div>
-  </div>
-
-  <!-- ROW 2: Navigation -->
-  <div class="row row-nav">
-    <button class="tab-btn active" data-tab="homeTiles">Home</button>
-    <button class="tab-btn" data-tab="globalDash">Global Dashboard</button>
-    <button class="tab-btn" data-tab="recordsAll">All Records</button>
-    <button class="tab-btn" data-tab="settings">Settings</button>
-  </div>
-
-  <!-- ROW 3: Action Buttons -->
-  <div class="row row-actions">
-    <button id="exportCsvBtn" class="btn small">Export CSV</button>
-    <button id="exportJsonBtn" class="btn small secondary">Backup (JSON)</button>
-    <label class="btn small outline">
-      Restore
-      <input type="file" id="importJsonInput" hidden />
-    </label>
-    <button id="downloadPngBtn" class="btn small outline">Download Report (PNG)</button>
-  </div>
   </header>
 
   <main>
@@ -371,7 +362,7 @@
   </div>
 
   <!-- scripts -->
-
+  <script src="app.js"></script>
 
   <!-- Firebase + Auth + Firestore (Modular v12) -->
   <script type="module">
@@ -412,26 +403,6 @@
   const entryForm  = $('entryForm');
   const catTbody   = document.querySelector('#recordsTable tbody');
   const allTbody   = document.querySelector('#allTable tbody');
-
-    // ============================
-// FIX FOR HEADER NAVIGATION
-// ============================
-document.querySelectorAll(".tab-btn").forEach(btn => {
-  btn.addEventListener("click", () => {
-    const target = btn.dataset.tab;
-
-    // Switch tab visibility
-    document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
-    document.getElementById(target).classList.add("active");
-
-    // Update active nav button
-    document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
-    btn.classList.add("active");
-
-    // Scroll to top when switching
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  });
-});
 
   // Header auth controls
   const btnLogin  = $('btnLogin');
