@@ -95,6 +95,7 @@ body{
 .row-nav {
   display: flex;
   gap: 12px;
+  margin-top: 10px;
 }
 
 .tab-btn {
@@ -118,7 +119,7 @@ body{
   gap: 12px;
   justify-content: flex-end;     /* Align to RIGHT */
   padding-right: 2px;
-  margin-top: -44px;
+  margin-top: -48px;
 }
 
 .row-actions .btn,
