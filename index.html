@@ -413,6 +413,26 @@
   const catTbody   = document.querySelector('#recordsTable tbody');
   const allTbody   = document.querySelector('#allTable tbody');
 
+    // ============================
+// FIX FOR HEADER NAVIGATION
+// ============================
+document.querySelectorAll(".tab-btn").forEach(btn => {
+  btn.addEventListener("click", () => {
+    const target = btn.dataset.tab;
+
+    // Switch tab visibility
+    document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+    document.getElementById(target).classList.add("active");
+
+    // Update active nav button
+    document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+
+    // Scroll to top when switching
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  });
+});
+
   // Header auth controls
   const btnLogin  = $('btnLogin');
   const btnLogout = $('btnLogout');
